@@ -1,0 +1,11 @@
+{
+  "python.languageServer": "Pylance",
+  "editor.rulers": [80],
+  "editor.formatOnSave": true,
+  "cSpell.words": ["dtype", "ebnf", "expt", "pycache"],
+  "[c]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 4,
+    "editor.defaultFormatter": "xaver.clang-format"
+  }
+}

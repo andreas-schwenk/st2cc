@@ -1,0 +1,44 @@
+# DEPENDENCIES
+#   pip install hatchling twine
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "st2c"
+version = "0.0.1"
+description = "A Python-based Simple E-Learning Language for the Rapid Creation of Interactive and Mobile-Friendly STEM Courses"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Andreas Schwenk", email = "contact@compiler-construction.com" },
+]
+maintainers = [
+    { name = "Andreas Schwenk", email = "contact@compiler-construction.com" },
+]
+license = { file = "LICENSE" }
+keywords = ["structured text", "compiler", "C"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Operating System :: OS Independent",
+]
+dependencies = []
+include = ["st2c/*.py"]
+
+[project.scripts]
+st2c = "st2c.__main__:main"
+
+[project.urls]
+Homepage = "https://st2c.org"
+Repository = "https://github.com/andreas-schwenk/st2c"
+
+[tool.hatch.build]
+exclude = [
+    "img/",
+    "build/",
+    "examples/",
+    "build-st2c.py",
+    "TODO.txt"
+]
