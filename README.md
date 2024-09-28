@@ -1,4 +1,4 @@
-# ST2C
+# st2cc
 
 <img src="logo.svg?v=3" width="128" height="128"/>
 
@@ -13,18 +13,18 @@ GPLv3 (GNU General Public License, Version 3)
 # Installation
 
 ```bash
-pip install st2c
+pip install st2cc
 ```
 
 # Usage
 
 ```bash
-st2c INPUT_FILE
+st2cc INPUT_FILE
 ```
 
 The input file, written in Structured Text (ST), is converted into a C file.
 
-For example: "st2c text.st" is translated to "text.c"
+For example: "st2cc text.st" is translated to "text.c"
 
 # Dependencies
 
@@ -63,7 +63,7 @@ Debug configurations for Visual Studio Code are available in the `.vscode` direc
 
 ## Project Structure
 
-The core components of the compiler are located in the `st2c/` directory. Below is an overview of each file and its purpose:
+The core components of the compiler are located in the `st2cc/` directory. Below is an overview of each file and its purpose:
 
 | File          | Description                                                                                      |
 | ------------- | ------------------------------------------------------------------------------------------------ |

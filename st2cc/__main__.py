@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 
 """
-st2c.py
+st2cc.py
 
 A Structured Text (ST) to C Transpiler.
 
 Installation:
-    pip install st2c
+    pip install st2cc
 
 Dependencies:
     No external dependencies are required, but Python version 3.10 or higher
     is necessary.
 
 Usage:
-    python st2c.py [OPTIONS] <input_file>
+    python st2cc.py [OPTIONS] <input_file>
 
 Options:
     -h, --help
@@ -35,7 +35,7 @@ Description:
     original .st extension of the input files.
 
 Examples:
-    python st2c.py example.st
+    python st2cc.py example.st
 
 Author:
     Andreas Schwenk (schwenk@member.fsf.org)
@@ -46,9 +46,9 @@ License:
 
 from __future__ import annotations
 
-from st2c.lex import Lexer
-from st2c.par import Parser
-from st2c.sem import SemanticAnalysis
+from st2cc.lex import Lexer
+from st2cc.par import Parser
+from st2cc.sem import SemanticAnalysis
 
 
 def main():

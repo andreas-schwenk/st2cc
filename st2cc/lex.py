@@ -15,7 +15,7 @@ from enum import Enum
 from typing import List
 import sys
 
-from st2c.ast import Node
+from st2cc.ast import Node
 
 KEYWORDS = "at,bool,else,end_if,end_program,end_var,false,if,int,program,real,then,true,var".split(
     ","

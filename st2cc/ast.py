@@ -16,7 +16,7 @@ from typing import Dict
 from typing import List
 
 
-from st2c.sym import DataType, Sym
+from st2cc.sym import DataType, Sym
 
 
 class Node:

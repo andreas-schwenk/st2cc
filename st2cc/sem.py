@@ -15,8 +15,8 @@ License:
 
 import sys
 
-from st2c.ast import Node
-from st2c.sym import BaseType, DataType, Sym
+from st2cc.ast import Node
+from st2cc.sym import BaseType, DataType, Sym
 
 
 class SemanticAnalysis:
@@ -43,6 +43,7 @@ class SemanticAnalysis:
         Runs the analysis for given node.
         """
         match node.ident:
+
             case "program":
                 # build symbols from "var" subtree
                 for v in node.children[1].children:
@@ -57,13 +58,16 @@ class SemanticAnalysis:
                 # process statements
                 self.__run_recursively(node.children[1])
                 return None
+
             case "statements":
                 for c in node.children:
                     self.__run_recursively(c)
                 return None
+
             case "if":
                 # TODO
                 return None
+
             case _:
                 self.__error(node, f"SemanticAnalysis: UNIMPLEMENTED '{node.ident}'")
 

@@ -12,8 +12,8 @@ License:
     GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 """
 
-from st2c.ast import Node
-from st2c.lex import Lexer, TokenType
+from st2cc.ast import Node
+from st2cc.lex import Lexer, TokenType
 
 
 class Parser:

@@ -6,7 +6,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "st2c"
+name = "st2cc"
 version = "0.0.1"
 description = "A Python-based Simple E-Learning Language for the Rapid Creation of Interactive and Mobile-Friendly STEM Courses"
 readme = "README.md"
@@ -25,20 +25,20 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = []
-include = ["st2c/*.py"]
+include = ["st2cc/*.py"]
 
 [project.scripts]
-st2c = "st2c.__main__:main"
+st2cc = "st2cc.__main__:main"
 
 [project.urls]
-Homepage = "https://st2c.org"
-Repository = "https://github.com/andreas-schwenk/st2c"
+Homepage = "https://st2cc.org"
+Repository = "https://github.com/andreas-schwenk/st2cc"
 
 [tool.hatch.build]
 exclude = [
     "img/",
     "build/",
     "examples/",
-    "build-st2c.py",
+    "build-st2cc.py",
     "TODO.txt"
 ]
