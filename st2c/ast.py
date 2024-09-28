@@ -1,5 +1,14 @@
 """
-AST node
+ast.py
+
+Description:
+    Abstract syntax tree representation via a "Node" data structure.
+
+Author:
+    Andreas Schwenk (schwenk@member.fsf.org)
+
+License:
+    GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 """
 
 from __future__ import annotations

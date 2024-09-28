@@ -1,10 +1,19 @@
 """
-LL(1) parser definition
+par.py
+
+Description:
+    Parser for the ST grammar. Implemented as top-down parser with a lookahead
+    of 1, i.e. LL(1).
+
+Author:
+    Andreas Schwenk (schwenk@member.fsf.org)
+
+License:
+    GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 """
 
 from st2c.ast import Node
-from st2c.tok import TokenType
-from st2c.lex import Lexer
+from st2c.lex import Lexer, TokenType
 
 
 class Parser:

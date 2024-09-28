@@ -1,16 +1,51 @@
 """
-Lexical analysis
+lex.py
+
+Description:
+    Lexical analyzer / scanner. Divides the input source code into tokens.
+
+Author:
+    Andreas Schwenk (schwenk@member.fsf.org)
+
+License:
+    GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 """
 
+from enum import Enum
 from typing import List
 import sys
 
-from st2c.tok import TokenType, Token
 from st2c.ast import Node
 
 KEYWORDS = "at,bool,else,end_if,end_program,end_var,false,if,int,program,real,then,true,var".split(
     ","
 )
+
+
+class TokenType(Enum):
+    """Type of token"""
+
+    UNKNOWN = 0
+    KEYWORD = 1
+    IDENT = 2
+    STR = 3
+    INT = 4
+    REAL = 5
+    DELIMITER = 6
+    END = 7
+
+
+class Token:
+    """Token for lexical analysis"""
+
+    def __init__(self, ident: str = "", row: int = -1, col: int = -1) -> None:
+        self.ident: str = ident
+        self.row: int = row
+        self.col: int = col
+        self.type: TokenType = TokenType.UNKNOWN
+
+    def __str__(self) -> str:
+        return f"'{self.ident}',{self.row},{self.col},{self.type}"
 
 
 class Lexer:

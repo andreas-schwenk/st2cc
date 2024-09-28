@@ -1,5 +1,14 @@
 """
-Data types and symbols
+sym.py
+
+Description:
+    Data types and symbol definitions.
+
+Author:
+    Andreas Schwenk (schwenk@member.fsf.org)
+
+License:
+    GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 """
 
 from enum import Enum
