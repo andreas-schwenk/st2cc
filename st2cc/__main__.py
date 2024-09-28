@@ -3,7 +3,7 @@
 """
 st2cc.py
 
-A Structured Text (ST) to C Transpiler.
+A Structured Text (ST) to C Compiler.
 
 Installation:
     pip install st2cc
@@ -49,6 +49,7 @@ from __future__ import annotations
 from st2cc.lex import Lexer
 from st2cc.par import Parser
 from st2cc.sem import SemanticAnalysis
+from st2cc.gen import CodeGenerator
 
 
 def main():
@@ -78,6 +79,9 @@ def main():
     print("--------")
     print(str(program))
     print("--------")
+
+    gen = CodeGenerator(program)
+    gen.run()
 
 
 if __name__ == "__main__":

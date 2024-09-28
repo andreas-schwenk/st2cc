@@ -11,9 +11,15 @@ License:
     GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 """
 
+from st2cc.ast import Node
 
-class Generator:
+
+class CodeGenerator:
     """C Code generation"""
 
-    def __init__(self) -> None:
+    def __init__(self, node: Node) -> None:
+        pass
+
+    def run(self) -> None:
+        """start code generation"""
         pass

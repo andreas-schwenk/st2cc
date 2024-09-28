@@ -1,8 +1,8 @@
 # st2cc
 
-<img src="logo.svg?v=3" width="128" height="128"/>
+<img src="logo.svg?v=5" width="128" height="128"/>
 
-Structured Text (ST) to C Transpiler
+Structured Text (ST) to C Compiler
 
 Written 2024 by Andreas Schwenk <schwenk@member.fsf.org>
 

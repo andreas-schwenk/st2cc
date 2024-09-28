@@ -1,5 +1,5 @@
 # DEPENDENCIES
-#   pip install hatchling twine
+#   pip install build hatchling twine
 
 [build-system]
 requires = ["hatchling"]

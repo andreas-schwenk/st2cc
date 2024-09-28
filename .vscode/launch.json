@@ -5,10 +5,10 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "st2c/__main__.py",
+      "name": "st2cc/__main__.py",
       "type": "debugpy",
       "request": "launch",
-      "module": "st2c",
+      "module": "st2cc",
       "console": "integratedTerminal"
     },
     {

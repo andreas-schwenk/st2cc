@@ -59,7 +59,7 @@ class Lexer:
         self.token = None
 
     def expect(self, t: TokenType, ident="") -> Node:
-        """expects a given token, or end transpilation"""
+        """expects a given token, or end compilation"""
         if self.token.type != t or (len(ident) > 0 and self.token.ident != ident):
             e = str(t)  # TODO: improve
             if len(ident) > 0:

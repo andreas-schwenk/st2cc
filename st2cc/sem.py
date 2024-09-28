@@ -60,16 +60,61 @@ class SemanticAnalysis:
                 return None
 
             case "statements":
-                for c in node.children:
-                    self.__run_recursively(c)
+                for s in node.children:
+                    self.__run_recursively(s)
                 return None
 
             case "if":
-                # TODO
+                cond = node.children[0]
+                cond_dtype = self.__run_recursively(cond)
+                if cond_dtype.base != BaseType.BOOL:
+                    self.__error(cond, "if statement condition must be boolean")
+                cond.dtype = cond_dtype
+                statements_if = node.children[1]
+                for s in statements_if.children:
+                    self.__run_recursively(s)
+                statements_else = node.children[2]
+                for s in statements_else.children:
+                    self.__run_recursively(s)
                 return None
 
+            case "var":
+                ident = node.children[0].ident
+                sym = node.get_symbol(ident)
+                if sym is None:
+                    self.__error(node, f"unknown symbol '{ident}'")
+                return sym.data_type
+
+            case "assign" | "mul":
+                lhs = node.children[0]
+                lhs_dtype = self.__run_recursively(lhs)
+                rhs = node.children[1]
+                rhs_dtype = self.__run_recursively(rhs)
+                if (
+                    lhs_dtype.base != rhs_dtype.base
+                ):  # TODO: check entire type, including pointer, ...
+                    self.__error(
+                        node,
+                        f"incompatible types for '{node.ident}':"
+                        + f" left-hand side '{lhs_dtype}',"
+                        + f" right-hand side '{rhs_dtype}'",
+                    )
+                node.dtype = lhs_dtype
+                return lhs_dtype
+
+            case "bool":
+                node.dtype = DataType(BaseType.BOOL)
+                return node.dtype
+
+            case "int":
+                node.dtype = DataType(BaseType.INT)
+                return node.dtype
+
             case _:
-                self.__error(node, f"SemanticAnalysis: UNIMPLEMENTED '{node.ident}'")
+                self.__error(
+                    node, f"SemanticAnalysis: UNIMPLEMENTED NODE TYPE '{node.ident}'"
+                )
+                return None
 
     def __error(self, node: Node, msg: str) -> None:
         """error handling"""
