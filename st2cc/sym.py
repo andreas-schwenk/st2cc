@@ -52,6 +52,7 @@ class Address:
         self.direction: AddressDirection = AddressDirection.INPUT
         self.bits: int = 1
         self.position: List[int] = [0]
+        self.value = 0
 
     def parse(self, data) -> None:
         """parses the address"""
@@ -90,6 +91,7 @@ class Address:
                 s += "Q"
         s += {1: "X", 8: "B", 16: "W", 32: "D"}.get(self.bits)
         s += ".".join(map(str, self.position))
+        s += f"#{self.value}"
         return s
 
 

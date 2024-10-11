@@ -52,7 +52,7 @@ from st2cc.lex import Lexer
 from st2cc.par import Parser
 from st2cc.sem import SemanticAnalysis
 from st2cc.gen import CodeGenerator
-from st2cc.int import Interpreter
+from st2cc.int import Interpreter, TestData
 
 
 def main():
@@ -94,7 +94,9 @@ def main():
     gen.run()
 
     # TODO: interpret only if requested via command line flag
-    interpreter = Interpreter(program)
+    test_data = TestData()
+    test_data.read("examples/example-test.csv")
+    interpreter = Interpreter(program, test_data)
     interpreter.run()
 
 

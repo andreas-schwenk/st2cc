@@ -2,7 +2,7 @@
   "python.languageServer": "Pylance",
   "editor.rulers": [80],
   "editor.formatOnSave": true,
-  "cSpell.words": ["dtype", "ebnf", "expt", "pycache"],
+  "cSpell.words": ["Andreas", "dtype", "ebnf", "expt", "pycache", "Schwenk"],
   "[c]": {
     "editor.insertSpaces": true,
     "editor.tabSize": 4,
