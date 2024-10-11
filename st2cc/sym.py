@@ -11,7 +11,10 @@ License:
     GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 """
 
+import sys
+
 from enum import Enum
+from typing import List
 
 
 class BaseType(Enum):
@@ -35,12 +38,71 @@ class DataType:
         return f"{self.base}"  # TODO: other attributes
 
 
+class AddressDirection:
+    """I/O direction"""
+
+    INPUT = 0
+    OUTPUT = 1
+
+
+class Address:
+    """Address for I/O"""
+
+    def __init__(self) -> None:
+        self.direction: AddressDirection = AddressDirection.INPUT
+        self.bits: int = 1
+        self.position: List[int] = [0]
+
+    def parse(self, data) -> None:
+        """parses the address"""
+        # direction
+        if data.startswith("I"):
+            self.direction = AddressDirection.INPUT
+            data = data[1:]
+        elif data.startswith("Q"):
+            self.direction = AddressDirection.OUTPUT
+            data = data[1:]
+        else:
+            print("unexpected error while parsing the address")  # TODO
+            sys.exit(0)
+        # number of bits
+        if data.startswith("X"):
+            self.bits = 1
+            data = data[1:]
+        elif data.startswith("B"):
+            self.bits = 8
+            data = data[1:]
+        elif data.startswith("W"):
+            self.bits = 16
+            data = data[1:]
+        elif data.startswith("D"):
+            self.bits = 32
+            data = data[1:]
+        # position
+        self.position = list(map(int, data.split(".")))
+
+    def __str__(self) -> str:
+        s = ""
+        match self.direction:
+            case AddressDirection.INPUT:
+                s += "I"
+            case AddressDirection.OUTPUT:
+                s += "Q"
+        s += {1: "X", 8: "B", 16: "W", 32: "D"}.get(self.bits)
+        s += ".".join(map(str, self.position))
+        return s
+
+
 class Sym:
     """Symbol"""
 
     def __init__(self, ident="", data_type: DataType = None) -> None:
         self.ident: str = ident
         self.data_type: DataType = data_type
+        self.address: Address = None
 
     def __str__(self) -> None:
-        return f"{self.ident}:{self.data_type}"
+        s = f"{self.ident}:{self.data_type}"
+        if self.address is not None:
+            s += f":ADDR={self.address}"
+        return s

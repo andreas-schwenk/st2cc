@@ -51,14 +51,18 @@ class Parser:
 
     def p_variable(self) -> Node:
         """
-        variable = ID ":" type ";"
+        variable = ID [ "AT" ADDR ] ":" type ";"
         """
         node = self.lex.node("variable")
         ident = self.lex.expect(TokenType.IDENT)
+        addr = self.lex.node("addr")
+        if self.lex.peek(TokenType.KEYWORD, "at"):
+            self.lex.next()
+            addr.children.append(self.lex.expect(TokenType.ADDR))
         self.lex.expect(TokenType.DELIMITER, ":")
         t = self.p_type()
         self.lex.expect(TokenType.DELIMITER, ";")
-        node.children = [ident, t]
+        node.children = [ident, t, addr]
         return node
 
     def p_type(self) -> Node:

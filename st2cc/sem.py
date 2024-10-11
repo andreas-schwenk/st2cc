@@ -16,12 +16,13 @@ License:
 import sys
 
 from st2cc.ast import Node
-from st2cc.sym import BaseType, DataType, Sym
+from st2cc.sym import BaseType, DataType, Sym, Address
 
 
 class SemanticAnalysis:
     """
-    Semantic analysis implementation.
+    Semantic analysis implementation. Checks data types, creates the symbol tables
+    and determines the data types for each node. The result is an altered AST.
 
     Attributes:
         ast (Node): The abstract syntax tree.
@@ -52,6 +53,10 @@ class SemanticAnalysis:
                         BaseType[v.children[1].children[0].ident.upper()]
                     )
                     sym = Sym(ident, data_type)
+                    addr = v.children[2]
+                    if addr is not None:
+                        sym.address = Address()
+                        sym.address.parse(addr.children[0].ident[1:])
                     node.symbols[ident] = sym
                 # remove var subtree
                 del node.children[1]

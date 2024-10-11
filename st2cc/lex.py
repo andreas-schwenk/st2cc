@@ -33,6 +33,7 @@ class TokenType(Enum):
     REAL = 5
     DELIMITER = 6
     END = 7
+    ADDR = 8
 
 
 class Token:
@@ -63,7 +64,7 @@ class Lexer:
         if self.token.type != t or (len(ident) > 0 and self.token.ident != ident):
             e = str(t)  # TODO: improve
             if len(ident) > 0:
-                e += ":" + ident
+                e += f":'{ident}'"
             self.error(f"Expected {e}")
         n = Node(self.token.ident, self.token.row, self.token.col)
         self.next()
@@ -125,6 +126,39 @@ class Lexer:
             self.token.type = TokenType.KEYWORD
         if len(self.token.ident) > 0:
             return
+        # address = "%" ("I"|"Q") ["X"|"B"|"W"|"D"] INT { "." INT };
+        self.token.type = TokenType.ADDR
+        if self.src[self.pos] == "%":
+            self.token.ident += "%"
+            self.pos += 1
+            self.col += 1
+            if self.pos < len(self.src) and self.src[self.pos] in ["I", "Q"]:
+                self.token.ident += self.src[self.pos]
+                self.pos += 1
+                self.col += 1
+                if self.pos < len(self.src) and self.src[self.pos] in [
+                    "X",
+                    "B",
+                    "W",
+                    "D",
+                ]:
+                    self.token.ident += self.src[self.pos]
+                    self.pos += 1
+                    self.col += 1
+                while self.pos < len(self.src) and self.src[self.pos].isdigit():
+                    self.token.ident += self.src[self.pos]
+                    self.pos += 1
+                    self.col += 1
+                while self.src[self.pos] == ".":
+                    self.token.ident += self.src[self.pos]
+                    self.pos += 1
+                    self.col += 1
+                    while self.pos < len(self.src) and self.src[self.pos].isdigit():
+                        self.token.ident += self.src[self.pos]
+                        self.pos += 1
+                        self.col += 1
+        if len(self.token.ident) > 0:
+            return
         # integer literal (TODO: exact implementation)
         self.token.type = TokenType.INT
         while self.pos < len(self.src):
@@ -155,7 +189,7 @@ class Lexer:
         if len(self.token.ident) > 0:
             return
         # default: error
-        self.error("Unknown character '{self.src[self.pos]}'")
+        self.error(f"Unknown character '{self.src[self.pos]}'")
 
     def error(self, msg):
         """exit with error"""

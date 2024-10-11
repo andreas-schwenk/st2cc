@@ -1,0 +1,3 @@
+# port,  physical address, description
+%IX0.0,  1000,             "Start button"
+%QX1.0,  1001,             "Motor output"
