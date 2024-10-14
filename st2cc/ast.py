@@ -28,10 +28,20 @@ class Node:
         self.ident: str = ident
         self.row: int = row
         self.col: int = col
-        self.dtype: DataType = None
+        self.data_type: DataType = None
         self.symbols: Dict[str, Sym] = {}
         self.parent: Node = None
         self.children: List[Node] = children if children is not None else []
+
+    def clone(self) -> Node:
+        """clones a node"""
+        c = Node(self.ident, self.row, self.col, [])
+        c.data_type = self.data_type
+        c.symbols = self.symbols
+        c.parent = self.parent
+        for child in self.children:
+            c.children.append(child.clone())
+        return c
 
     def set_parent(self) -> None:
         """sets parent recursively"""
@@ -47,13 +57,20 @@ class Node:
                 return n.symbols[ident]
             n = n.parent
 
-    def __str__(self, indentation: int = 0) -> str:
-        # TODO: output symbols
-        t = str(self.dtype) if self.dtype is not None else ""
-        s = f"{self.row}:{self.col}:{self.ident}:<{t}>\n"
+    def __str__(self) -> str:
+        return self.custom_str()
+
+    def custom_str(self, show_position: bool = True, indentation: int = 0) -> str:
+        """custom stringify"""
+        t = str(self.data_type) if self.data_type is not None else ""
+        s = ""
+        if show_position:
+            s += f"{self.row}:{self.col}:"
+        s += f"{self.ident}:<{t}>\n"
         for sym in self.symbols.values():
             s += ("  " * (indentation + 1)) + f"SYMBOL:{sym}\n"
-        # if len(self.children) > 0:
         for ci in self.children:
-            s += ("  " * (indentation + 1)) + ci.__str__(indentation + 1)
+            s += ("  " * (indentation + 1)) + ci.custom_str(
+                show_position, indentation + 1
+            )
         return s

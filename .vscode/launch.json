@@ -9,6 +9,12 @@
       "type": "debugpy",
       "request": "launch",
       "module": "st2cc",
+      "args": [
+        "examples/example.st",
+        "-i",
+        "--test",
+        "examples/example-test.csv"
+      ],
       "console": "integratedTerminal"
     },
     {

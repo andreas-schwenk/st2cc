@@ -194,4 +194,4 @@ class Lexer:
     def error(self, msg):
         """exit with error"""
         print(f"ERROR:{self.row}:{self.col}: {msg}")
-        sys.exit(0)
+        sys.exit(-1)

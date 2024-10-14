@@ -71,10 +71,10 @@ class SemanticAnalysis:
 
             case "if":
                 cond = node.children[0]
-                cond_dtype = self.__run_recursively(cond)
-                if cond_dtype.base != BaseType.BOOL:
+                cond_data_type = self.__run_recursively(cond)
+                if cond_data_type.base != BaseType.BOOL:
                     self.__error(cond, "if statement condition must be boolean")
-                cond.dtype = cond_dtype
+                cond.data_type = cond_data_type
                 statements_if = node.children[1]
                 for s in statements_if.children:
                     self.__run_recursively(s)
@@ -88,32 +88,37 @@ class SemanticAnalysis:
                 sym = node.get_symbol(ident)
                 if sym is None:
                     self.__error(node, f"unknown symbol '{ident}'")
+                node.data_type = sym.data_type
                 return sym.data_type
 
             case "assign" | "mul":
                 lhs = node.children[0]
-                lhs_dtype = self.__run_recursively(lhs)
+                lhs_data_type = self.__run_recursively(lhs)
                 rhs = node.children[1]
-                rhs_dtype = self.__run_recursively(rhs)
+                rhs_data_type = self.__run_recursively(rhs)
                 if (
-                    lhs_dtype.base != rhs_dtype.base
+                    lhs_data_type.base != rhs_data_type.base
                 ):  # TODO: check entire type, including pointer, ...
                     self.__error(
                         node,
                         f"incompatible types for '{node.ident}':"
-                        + f" left-hand side '{lhs_dtype}',"
-                        + f" right-hand side '{rhs_dtype}'",
+                        + f" left-hand side '{lhs_data_type}',"
+                        + f" right-hand side '{rhs_data_type}'",
                     )
-                node.dtype = lhs_dtype
-                return lhs_dtype
+                node.data_type = lhs_data_type
+                return lhs_data_type
 
             case "bool":
-                node.dtype = DataType(BaseType.BOOL)
-                return node.dtype
+                node.ident = "const"
+                node.data_type = DataType(BaseType.BOOL)
+                node.children[0].ident = (
+                    "1" if node.children[0].ident == "true" else "0"
+                )
+                return node.data_type
 
             case "int":
-                node.dtype = DataType(BaseType.INT)
-                return node.dtype
+                node.data_type = DataType(BaseType.INT)
+                return node.data_type
 
             case _:
                 self.__error(
@@ -124,4 +129,4 @@ class SemanticAnalysis:
     def __error(self, node: Node, msg: str) -> None:
         """error handling"""
         print(f"ERROR:{node.row}:{node.col}:{msg}")
-        sys.exit(0)
+        sys.exit(-1)

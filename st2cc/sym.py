@@ -14,7 +14,10 @@ License:
 import sys
 
 from enum import Enum
-from typing import List
+from typing import List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from st2cc.ast import Node
 
 
 class BaseType(Enum):
@@ -52,7 +55,6 @@ class Address:
         self.direction: AddressDirection = AddressDirection.INPUT
         self.bits: int = 1
         self.position: List[int] = [0]
-        self.value = 0
 
     def parse(self, data) -> None:
         """parses the address"""
@@ -65,7 +67,7 @@ class Address:
             data = data[1:]
         else:
             print("unexpected error while parsing the address")  # TODO
-            sys.exit(0)
+            sys.exit(-1)
         # number of bits
         if data.startswith("X"):
             self.bits = 1
@@ -91,7 +93,6 @@ class Address:
                 s += "Q"
         s += {1: "X", 8: "B", 16: "W", 32: "D"}.get(self.bits)
         s += ".".join(map(str, self.position))
-        s += f"#{self.value}"
         return s
 
 
@@ -102,9 +103,10 @@ class Sym:
         self.ident: str = ident
         self.data_type: DataType = data_type
         self.address: Address = None
+        self.value: Node = None
 
     def __str__(self) -> None:
         s = f"{self.ident}:{self.data_type}"
         if self.address is not None:
-            s += f":ADDR={self.address}"
+            s += f":ADDR={self.address}:VALUE={self.value}"
         return s
