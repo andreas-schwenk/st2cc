@@ -10,10 +10,10 @@
       "request": "launch",
       "module": "st2cc",
       "args": [
-        "examples/example.st",
+        "--cfg",
+        "examples/example-cfg.toml",
         "-i",
-        "--test",
-        "examples/example-test.csv"
+        "examples/example.st"
       ],
       "console": "integratedTerminal"
     },

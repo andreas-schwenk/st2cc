@@ -8,7 +8,7 @@ build-backend = "hatchling.build"
 [project]
 name = "st2cc"
 version = "0.0.1"
-description = "A Python-based Simple E-Learning Language for the Rapid Creation of Interactive and Mobile-Friendly STEM Courses"
+description = "Structured Text (ST) to C Compiler and Interpreter, written in Python"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
@@ -35,10 +35,4 @@ Homepage = "https://st2cc.org"
 Repository = "https://github.com/andreas-schwenk/st2cc"
 
 [tool.hatch.build]
-exclude = [
-    "img/",
-    "build/",
-    "examples/",
-    "build-st2cc.py",
-    "TODO.txt"
-]
+exclude = ["img/", "build/", "examples/", "build-st2cc.py", "TODO.txt"]

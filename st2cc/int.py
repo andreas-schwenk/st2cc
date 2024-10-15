@@ -12,60 +12,97 @@ License:
 """
 
 import sys
-import csv
 from typing import Dict, List
 
 from st2cc.ast import Node
 from st2cc.sym import Sym, AddressDirection
 
 
-class TestData:
-    """
-    Test data sourced from a CSV file, used to provide values for input addresses.
+class Sample:
+    """sample data with value for each signal"""
 
-    Attributes
-    ----------
-    data : Dict[str, List[int]]
-        TODO.
-    active_idx : int
-        The current sample index.
-    sample_count : int
-        The number of samples for each address.
-    """
+    def __init__(self):
+        self.data: Dict[str, int] = {}
+
+
+class TestData:
+    """Test data"""
 
     def __init__(self) -> None:
-        self.data: Dict[str, List[int]] = {}
-        self.active_idx: int = 0
-        self.sample_count: int = -1
+        self.pos: int = 0
+        self.samples: List[Sample] = []
 
-    def read(self, csv_file_path) -> None:
-        """reads an CSV file"""
-        with open(csv_file_path, mode="r", encoding="utf-8") as f:
-            r = csv.reader(f)
-            for row in r:
-                if row and not row[0].startswith("#"):
-                    self.data[row[0]] = list(map(int, row[1:]))  # TODO: error handling
-        for samples in self.data.values():
-            if self.sample_count < 0:
-                self.sample_count = len(samples)
-            elif self.sample_count != len(samples):
-                print(f"Error: unbalanced length of samples in file '{csv_file_path}'")
-                sys.exit(-1)
+    def import_data(self, data: Dict[str, any]) -> None:
+        """import TOML data"""
+        # get the number of samples
+        n = 0
+        for ident, arr in data.items():
+            n = max(n, len(arr))
+        # create samples
+        for _ in range(0, n):
+            self.samples.append(Sample())
+        # fill samples; non-specified entries are set to zero
+        for ident, arr in data.items():
+            for i in range(0, n):
+                if i < len(arr):
+                    self.samples[i].data[ident.upper()] = arr[i]
+                else:
+                    self.samples[i].data[ident.upper()] = 0
+
+
+# class TestData:
+#     """
+#     Test data sourced from a CSV file, used to provide values for input addresses.
+
+#     Attributes
+#     ----------
+#     data : Dict[str, List[int]]
+#         TODO.
+#     active_idx : int
+#         The current sample index.
+#     sample_count : int
+#         The number of samples for each address.
+#     """
+
+#     def __init__(self) -> None:
+#         self.data: Dict[str, List[int]] = {}
+#         self.active_idx: int = 0
+#         self.sample_count: int = -1
+
+#     def read(self, csv_file_path) -> None:
+#         """reads an CSV file"""
+#         with open(csv_file_path, mode="r", encoding="utf-8") as f:
+#             r = csv.reader(f)
+#             for row in r:
+#                 if row and not row[0].startswith("#"):
+#                     self.data[row[0]] = list(map(int, row[1:]))  # TODO: error handling
+#         for samples in self.data.values():
+#             if self.sample_count < 0:
+#                 self.sample_count = len(samples)
+#             elif self.sample_count != len(samples):
+#                 print(f"Error: unbalanced length of samples in file '{csv_file_path}'")
+#                 sys.exit(-1)
 
 
 class Interpreter:
     """ST intermediate code interpretation"""
 
-    def __init__(self, program: Node, test_data: TestData) -> None:
+    def __init__(self, program: Node, config: dict[str, any]) -> None:
         self.program: Node = program
-        self.test_data: TestData = test_data
+        self.config: dict[str, any] = config
+        self.cycle: int = 0
+        self.test_data: TestData = TestData()
+        if "test" in config:
+            self.test_data.import_data(config["test"])
 
     def run(self) -> None:
         """start code interpretation"""
-        n = self.test_data.sample_count
+        n = len(
+            self.test_data.samples
+        )  # TODO: support run, if no input address is given as test data (this is the case, if no address is given at all)
         for i in range(0, n):
-            print(f"--- starting simulator for sample {i+1} of {n} ---")
-            self.test_data.active_idx = i
+            print(f"--- starting simulator for cycle {i+1} of {n} ---")
+            self.cycle = i
             print("INPUT:")
             print("TODO: show input values here")
             self.run_node(self.program)
@@ -149,9 +186,15 @@ class Interpreter:
             if sym.address is None:
                 continue
             addr_str = str(sym.address)
-            if addr_str in self.test_data.data:
-                v = self.test_data.data[addr_str][self.test_data.active_idx]
-                sym.value = Node(f"{v}", -1, -1, [])
+            sample = self.test_data.samples[self.cycle]
+
+            # TODO: stringify sym.address with only the first pos entry and then extract the bit given by the second pos entry
+
+            bp = 1337
+            # TODO
+            # if addr_str in self.test_data.data:
+            #     v = self.test_data.data[addr_str][self.test_data.active_idx]
+            #     sym.value = Node(f"{v}", -1, -1, [])
 
     def get_output_addresses(self) -> List[Sym]:
         """gets output addresses"""

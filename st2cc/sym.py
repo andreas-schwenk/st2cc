@@ -56,6 +56,26 @@ class Address:
         self.bits: int = 1
         self.position: List[int] = [0]
 
+    def get_num_bytes(self) -> int:
+        """returns the number of bytes"""
+        return self.bits // 8
+
+    def get_byte_pos(self) -> int:
+        """returns the position of the first byte"""
+        if len(self.position == 0):
+            return 0
+        b = 0
+        match self.bits:
+            case 1:
+                b = self.position[0]
+            case 8:
+                b = self.position[0]
+            case 16:
+                b = 2 * self.position[0]
+            case 32:
+                b = 4 * self.position[0]
+        return b
+
     def parse(self, data) -> None:
         """parses the address"""
         # direction

@@ -46,12 +46,13 @@ License:
 
 from __future__ import annotations
 import argparse
+import tomllib
 
 from st2cc.lex import Lexer
 from st2cc.par import Parser
 from st2cc.sem import SemanticAnalysis
 from st2cc.gen import CodeGenerator
-from st2cc.int import Interpreter, TestData
+from st2cc.int import Interpreter
 
 
 def main():
@@ -64,14 +65,9 @@ def main():
     parser.add_argument("-i", action="store_true", help="Interpret the input file.")
     parser.add_argument("-v", action="store_true", help="Enable verbose mode.")
     parser.add_argument(
-        "--addr",
+        "--cfg",
         metavar="FILE",
-        help="Provide a CSV config file for physical addresses.",
-    )
-    parser.add_argument(
-        "--test",
-        metavar="FILE",
-        help="Provide a CSV config file for test values (Only useful with -i option).",
+        help="Provide a TOML config file.",
     )
     parser.add_argument("input_file", metavar="FILE", help="The input file to process.")
     args = parser.parse_args()
@@ -79,16 +75,13 @@ def main():
     # extract args
     interpret = args.i
     verbose = args.v
-    addr_file_path = args.addr  # TODO
-    test_file_path = args.test
+    cfg_file_path = args.cfg
     input_file_path = args.input_file
 
-    # TODO: move code
-    # with open("examples/example-io.csv", mode="r", encoding="utf-8") as f:
-    #     r = csv.reader(f)
-    #     for row in r:
-    #         if row and not row[0].startswith("#"):
-    #             print(row)
+    config = {}
+    if len(cfg_file_path) > 0:
+        with open("examples/example-cfg.toml", "rb") as f:
+            config = tomllib.load(f)
 
     st_src: str = ""
     with open(input_file_path, encoding="utf-8") as f:
@@ -120,9 +113,9 @@ def main():
     gen.run()
 
     if interpret:
-        test_data = TestData()
-        test_data.read(test_file_path)
-        interpreter = Interpreter(program, test_data)
+        # test_data = TestData()
+        # test_data.read(test_file_path)
+        interpreter = Interpreter(program, config)
         interpreter.run()
 
 

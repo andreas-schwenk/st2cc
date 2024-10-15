@@ -1,0 +1,10 @@
+{
+  "ports": {
+    "I0": {
+      "address": 1000,
+      "bits": 1,
+      "desc": "start button",
+      "test": [0, 1]
+    }
+  }
+}

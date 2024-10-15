@@ -1,0 +1,9 @@
+
+[addr]
+input = 1000
+output = 2000
+
+[test]
+# TODO docs: dot notation not allowed here
+ib5 = [10, 11]
+ix0 = [0, 1]
