@@ -1,9 +1,7 @@
-
 [addr]
 input = 1000
 output = 2000
 
 [test]
-# TODO docs: dot notation not allowed here
-ib5 = [10, 11]
-ix0 = [0, 1]
+ix0 = [0b10, 0b01] # test sensor data
+qx0 = [0b11, 0b11] # assert actuator data

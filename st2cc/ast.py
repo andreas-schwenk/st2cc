@@ -16,7 +16,7 @@ from typing import Dict
 from typing import List
 
 
-from st2cc.sym import DataType, Sym
+from st2cc.sym import DataType, Sym, BaseType
 
 
 class Node:
@@ -32,6 +32,34 @@ class Node:
         self.symbols: Dict[str, Sym] = {}
         self.parent: Node = None
         self.children: List[Node] = children if children is not None else []
+
+    @staticmethod
+    def create_const_bool(value: bool) -> Node:
+        """creates a node for a boolean constant"""
+        v = "true" if value else "false"
+        n = Node("const", -1, -1, [Node(f"{v}", -1, -1, [])])
+        n.data_type = DataType(BaseType.BOOL)
+        return n
+
+    @staticmethod
+    def create_const_int(value: int) -> Node:
+        """creates a node for an integral constant"""
+        n = Node("const", -1, -1, [Node(f"{value}", -1, -1, [])])
+        n.data_type = DataType(BaseType.INT)
+        return n
+
+    @staticmethod
+    def compare(u: Node, v: Node) -> bool:
+        """deeply compares two nodes w.r.t identifiers"""
+        if u.ident != v.ident:  # TODO: numerical compare for real
+            return False
+        if len(u.children) != len(v.children):
+            return False
+        n = len(u.children)
+        for i in range(0, n):
+            if Node.compare(u.children[i], v.children[i]) is False:
+                return False
+        return True
 
     def clone(self) -> Node:
         """clones a node"""
@@ -74,3 +102,13 @@ class Node:
                 show_position, indentation + 1
             )
         return s
+
+    def const_str(self) -> str:
+        """formats nodes of type 'const'"""
+        # TODO: missing pointers, ...
+        if self.ident != "const":
+            return str(self)
+        match self.data_type.base:
+            case BaseType.BOOL | BaseType.INT:
+                return self.children[0].ident
+        print(f"Node.const_str(..) is unimplemented for type'{self.data_type.base}'")

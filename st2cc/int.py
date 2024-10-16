@@ -15,7 +15,7 @@ import sys
 from typing import Dict, List
 
 from st2cc.ast import Node
-from st2cc.sym import Sym, AddressDirection
+from st2cc.sym import AddressDirection, BaseType
 
 
 class Sample:
@@ -50,40 +50,6 @@ class TestData:
                     self.samples[i].data[ident.upper()] = 0
 
 
-# class TestData:
-#     """
-#     Test data sourced from a CSV file, used to provide values for input addresses.
-
-#     Attributes
-#     ----------
-#     data : Dict[str, List[int]]
-#         TODO.
-#     active_idx : int
-#         The current sample index.
-#     sample_count : int
-#         The number of samples for each address.
-#     """
-
-#     def __init__(self) -> None:
-#         self.data: Dict[str, List[int]] = {}
-#         self.active_idx: int = 0
-#         self.sample_count: int = -1
-
-#     def read(self, csv_file_path) -> None:
-#         """reads an CSV file"""
-#         with open(csv_file_path, mode="r", encoding="utf-8") as f:
-#             r = csv.reader(f)
-#             for row in r:
-#                 if row and not row[0].startswith("#"):
-#                     self.data[row[0]] = list(map(int, row[1:]))  # TODO: error handling
-#         for samples in self.data.values():
-#             if self.sample_count < 0:
-#                 self.sample_count = len(samples)
-#             elif self.sample_count != len(samples):
-#                 print(f"Error: unbalanced length of samples in file '{csv_file_path}'")
-#                 sys.exit(-1)
-
-
 class Interpreter:
     """ST intermediate code interpretation"""
 
@@ -101,17 +67,14 @@ class Interpreter:
             self.test_data.samples
         )  # TODO: support run, if no input address is given as test data (this is the case, if no address is given at all)
         for i in range(0, n):
-            print(f"--- starting simulator for cycle {i+1} of {n} ---")
+            print(f"--- Running cycle {i+1} of {n} ---")
             self.cycle = i
-            print("INPUT:")
-            print("TODO: show input values here")
+            self.handle_io(self.program, True)  # sets the input for addresses
+            self.show_io(AddressDirection.INPUT)
             self.run_node(self.program)
-            # show output
-            print("Simulator stopped successfully.")
-            print("OUTPUT:")
-            out = self.get_output_addresses()
-            for o in out:
-                print(f"{o.ident}={o.value.custom_str(False)}")
+            self.show_io(AddressDirection.OUTPUT)
+            self.handle_io(self.program, False)  # asserts the output for addresses
+        print("... Simulator stopped successfully.")
 
     def run_node(self, node: Node) -> Node:
         """interpret node recursively"""
@@ -127,6 +90,8 @@ class Interpreter:
                 result = self.__var(node)
             case "assign":
                 result = self.__assign(node)
+            case "or":
+                result = self.__or(node)
             case "const":
                 result = self.__const(node)
             case _:
@@ -137,21 +102,20 @@ class Interpreter:
         return result
 
     def __program(self, node: Node) -> None:
-        """interprets a program-node"""
-        self.set_input_address_values(node)
+        """interprets program-node"""
         statements = node.children[1]
         self.run_node(statements)
 
     def __statements(self, node: Node) -> None:
-        """interprets a statements-node"""
+        """interprets statements-node"""
         for child in node.children:
             self.run_node(child)
 
     def __if(self, node: Node) -> None:
-        """interprets an if-node"""
+        """interprets if-node"""
         condition = node.children[0]
         predicate = self.run_node(condition)
-        if predicate.ident == "1":
+        if Node.compare(predicate, Node.create_const_bool(True)):
             if_true = node.children[1]
             self.run_node(if_true)
         else:
@@ -159,55 +123,87 @@ class Interpreter:
             self.run_node(if_false)
 
     def __assign(self, node: Node) -> Node:
-        """interprets an assign-node"""
+        """interprets assign-node"""
         lhs = node.children[0]
         sym = node.get_symbol(lhs.children[0].ident)
         rhs = self.run_node(node.children[1])
         sym.value = rhs
         return rhs
 
+    def __or(self, node: Node) -> Node:
+        """interprets or-node. Implemented as short-circuit evaluation"""
+        o1 = self.run_node(node.children[0])
+        if Node.compare(o1, Node.create_const_bool(True)):
+            return Node.create_const_bool(True)
+        return self.run_node(node.children[1])
+
     def __const(self, node: Node) -> Node:
-        """interprets a const-node"""
-        n = node.children[0].clone()
-        n.data_type = node.data_type
-        return n
+        """interprets const-node"""
+        return node.clone()
 
     def __var(self, node: Node) -> Node:
-        """interprets a var-node"""
+        """interprets var-node"""
         ident = node.children[0].ident
         sym = node.get_symbol(ident)
         n = sym.value.clone()  # TODO: depends on pointer or not, ...
         n.data_type = sym.data_type
         return n
 
-    def set_input_address_values(self, node: Node) -> None:
-        """sets the I/O test values to the currents node symbols"""
-        for sym in node.symbols.values():
+    def handle_io(self, program: Node, set_input: bool) -> None:
+        """sets the I/O test values to the currents node symbols, or asserts the output"""
+        if program.ident != "program":
+            print("ERROR: handle_io(..) must be applied to a 'program'")
+            sys.exit(-1)
+        for sym in program.symbols.values():
             if sym.address is None:
                 continue
             addr_str = str(sym.address)
+            addr_bit = -1
+            if "." in addr_str:  # TODO: this is just a hack...
+                [addr_str, addr_bit] = addr_str.split(".")
+                addr_bit = int(addr_bit)
             sample = self.test_data.samples[self.cycle]
+            if addr_str in sample.data:
+                value = sample.data[addr_str]
+                if addr_bit >= 0:
+                    value = (value >> addr_bit) & 1
+                value_node = None
+                match sym.data_type.base:
+                    case BaseType.BOOL:
+                        value_node = Node.create_const_bool(value != 0)
+                    case BaseType.INT:
+                        value_node = Node.create_const_int(value)
+                    case _:
+                        print("ERROR: unimplemented set_input_address_values(..)")
+                        sys.exit(-1)
+                if set_input and sym.address.direction == AddressDirection.INPUT:
+                    sym.value = value_node
+                elif not set_input and sym.address.direction == AddressDirection.OUTPUT:
+                    actual = sym.value
+                    expected = value_node
+                    if sym.value is None or not Node.compare(actual, expected):
+                        print(
+                            f"ERROR: assert failed for output address '{sym.address}'!"
+                        )
+                        print(f"Expected value: {Node.custom_str(expected, False)}")
+                        print(f"Actual value: {Node.custom_str(actual, False)}")
+                        sys.exit(0)
 
-            # TODO: stringify sym.address with only the first pos entry and then extract the bit given by the second pos entry
-
-            bp = 1337
-            # TODO
-            # if addr_str in self.test_data.data:
-            #     v = self.test_data.data[addr_str][self.test_data.active_idx]
-            #     sym.value = Node(f"{v}", -1, -1, [])
-
-    def get_output_addresses(self) -> List[Sym]:
-        """gets output addresses"""
+    def show_io(self, direction: AddressDirection) -> None:
+        """shows i/o address values"""
+        match direction:
+            case AddressDirection.INPUT:
+                print("INPUT:")
+            case AddressDirection.OUTPUT:
+                print("OUTPUT:")
         if self.program is None:
-            return []
-        result: List[Sym] = []
-        for output in self.program.symbols.values():
-            if (
-                output.address is not None
-                and output.address.direction == AddressDirection.OUTPUT
-            ):
-                result.append(output)
-        return result
+            return
+        for symbol in self.program.symbols.values():
+            if symbol.address is not None and symbol.address.direction == direction:
+                if symbol.value is None:
+                    print(f"  {symbol.ident}=NONE")
+                else:
+                    print(f"  {symbol.ident}={symbol.value.const_str()}")
 
     def __error(self, node: Node, msg: str) -> None:
         """error handling"""

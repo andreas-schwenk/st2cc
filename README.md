@@ -26,6 +26,14 @@ The input file, written in Structured Text (ST), is converted into a C file.
 
 For example: "st2cc text.st" is translated to "text.c"
 
+## Config
+
+TOML file
+
+In part `[test]`, the dot notation of addresses is **not** allowed. Values are specified for entire bytes. Using the bit representation may be more readable (e.g. `0b111` instead of `7`).
+
+If output address values are given, values are asserted.
+
 # Dependencies
 
 No external dependencies are required, but Python version 3.10 or higher

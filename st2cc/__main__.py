@@ -109,14 +109,14 @@ def main():
         print(str(program))
         print("--------")
 
-    gen = CodeGenerator(program)
-    gen.run()
-
     if interpret:
         # test_data = TestData()
         # test_data.read(test_file_path)
         interpreter = Interpreter(program, config)
         interpreter.run()
+
+    gen = CodeGenerator(program)
+    gen.run()
 
 
 if __name__ == "__main__":

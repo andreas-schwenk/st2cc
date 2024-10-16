@@ -1,3 +1,0 @@
-# port,  physical address, description
-IX0,  1000,             "Start button"
-QX1,  1001,             "Motor output"

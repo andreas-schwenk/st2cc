@@ -1,19 +1,30 @@
+// This file was generated automatically by st2cc.
+// Visit github.com/andreas-schwenk/st2cc
+
+#include <inttypes.h>
 #include <stdbool.h>
 
-#define ADDR_START_BUTTON 1000
-#define ADDR_MOTOR_OUTPUT 1001
+#define ADDR_I0 1000
+#define ADDR_Q0 2000
 
-#define __READ_BIT(ADDR, BIT) (((*(volatile int *)ADDR) << BIT) & 1)
-#define __WRITE_BIT(ADDR, BIT, VALUE)                                          \
-    *(volatile int *)ADDR =                                                    \
-        (*(volatile int *)ADDR & ~(1 << BIT)) | ((VALUE & 1) << BIT);
-
-int main() {
-    bool start_button = __READ_BIT(ADDR_START_BUTTON, 0);
-    if (start_button) {
-        __WRITE_BIT(ADDR_MOTOR_OUTPUT, 0, true);
-    } else {
-        __WRITE_BIT(ADDR_MOTOR_OUTPUT, 0, false);
+int main(int argc, char *argv[]) {
+    uint8_t i0;
+    uint8_t q0;
+    bool start_button_a;
+    bool start_button_b;
+    bool motor_output_a;
+    bool motor_output_b;
+    while (1) {
+        i0 = *(volatile uint8_t *)ADDR_I0;
+        start_button_a = i0 & 0x1;
+        start_button_b = i0 & 0x2;
+        if (start_button_a || start_button_b) {
+            motor_output_a = true;
+        } else {
+            motor_output_b = false;
+        }
+        q0 = (motor_output_b << 1) | motor_output_a;
+        *(volatile uint8_t *)ADDR_Q0 = q0;
     }
     return 0;
 }

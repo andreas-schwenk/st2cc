@@ -17,7 +17,7 @@ import sys
 
 from st2cc.ast import Node
 
-KEYWORDS = "at,bool,else,end_if,end_program,end_var,false,if,int,program,real,then,true,var".split(
+KEYWORDS = "at,bool,else,end_if,end_program,end_var,false,if,int,or,program,real,then,true,var".split(
     ","
 )
 

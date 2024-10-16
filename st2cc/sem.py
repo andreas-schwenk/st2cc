@@ -91,14 +91,12 @@ class SemanticAnalysis:
                 node.data_type = sym.data_type
                 return sym.data_type
 
-            case "assign" | "mul":
+            case "assign" | "mul" | "or":
                 lhs = node.children[0]
                 lhs_data_type = self.__run_recursively(lhs)
                 rhs = node.children[1]
                 rhs_data_type = self.__run_recursively(rhs)
-                if (
-                    lhs_data_type.base != rhs_data_type.base
-                ):  # TODO: check entire type, including pointer, ...
+                if DataType.compare(lhs.data_type, rhs.data_type) is False:
                     self.__error(
                         node,
                         f"incompatible types for '{node.ident}':"
@@ -108,16 +106,13 @@ class SemanticAnalysis:
                 node.data_type = lhs_data_type
                 return lhs_data_type
 
-            case "bool":
+            case "bool" | "int":
+                match node.ident:
+                    case "bool":
+                        node.data_type = DataType(BaseType.BOOL)
+                    case "int":
+                        node.data_type = DataType(BaseType.INT)
                 node.ident = "const"
-                node.data_type = DataType(BaseType.BOOL)
-                node.children[0].ident = (
-                    "1" if node.children[0].ident == "true" else "0"
-                )
-                return node.data_type
-
-            case "int":
-                node.data_type = DataType(BaseType.INT)
                 return node.data_type
 
             case _:

@@ -11,6 +11,7 @@ License:
     GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 """
 
+from __future__ import annotations
 import sys
 
 from enum import Enum
@@ -36,6 +37,19 @@ class DataType:
         self.pointer: bool = False
         self.array_length: bool = 1
         self.array_first_idx: int = 1
+
+    @staticmethod
+    def compare(u: DataType, v: DataType) -> bool:
+        """compares two data types"""
+        if u.base != v.base:
+            return False
+        if u.pointer != v.pointer:
+            return False
+        if u.array_length != v.array_length:
+            return False
+        if u.array_first_idx != v.array_first_idx:
+            return False
+        return True
 
     def __str__(self) -> str:
         return f"{self.base}"  # TODO: other attributes

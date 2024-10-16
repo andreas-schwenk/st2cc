@@ -10,7 +10,7 @@ name = "st2cc"
 version = "0.0.1"
 description = "Structured Text (ST) to C Compiler and Interpreter, written in Python"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [
     { name = "Andreas Schwenk", email = "contact@compiler-construction.com" },
 ]

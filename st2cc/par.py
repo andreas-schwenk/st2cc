@@ -25,11 +25,11 @@ class Parser:
 
     def parse(self) -> Node:
         """parses the ST file"""
-        root = self.p_program()
+        root = self.__program()
         root.set_parent()
         return root
 
-    def p_program(self) -> Node:
+    def __program(self) -> Node:
         """
         program = "PROGRAM" ID "VAR" variable* "END_VAR" statement* "END_PROGRAM";
         """
@@ -37,11 +37,11 @@ class Parser:
         ident = self.lex.expect(TokenType.IDENT)
         variables = self.lex.expect(TokenType.KEYWORD, "var")
         while not self.lex.peek(TokenType.KEYWORD, "end_var"):
-            variables.children.append(self.p_variable())
+            variables.children.append(self.__variable())
         self.lex.expect(TokenType.KEYWORD, "end_var")
         statements = self.lex.node("statements")
         while not self.lex.peek(TokenType.KEYWORD, "end_program"):
-            statements.children.append(self.p_statement())
+            statements.children.append(self.__statement())
         node.children = [
             ident,
             variables,
@@ -49,7 +49,7 @@ class Parser:
         ]
         return node
 
-    def p_variable(self) -> Node:
+    def __variable(self) -> Node:
         """
         variable = ID [ "AT" ADDR ] ":" type ";"
         """
@@ -60,12 +60,12 @@ class Parser:
             self.lex.next()
             addr.children.append(self.lex.expect(TokenType.ADDR))
         self.lex.expect(TokenType.DELIMITER, ":")
-        t = self.p_type()
+        t = self.__type()
         self.lex.expect(TokenType.DELIMITER, ";")
         node.children = [ident, t, addr]
         return node
 
-    def p_type(self) -> Node:
+    def __type(self) -> Node:
         """
         type = "BOOL" | "INT" | "REAL";
         """
@@ -76,67 +76,77 @@ class Parser:
             self.lex.error("unknown type 't'")
         return node
 
-    def p_statement(self) -> Node:
+    def __statement(self) -> Node:
         """
         statement = if | assignment;
         """
         match self.lex.token.ident:
             case "if":
-                return self.p_if()
+                return self.__if()
             case _:
-                return self.p_assignment()
+                return self.__assignment()
 
-    def p_if(self) -> Node:
+    def __if(self) -> Node:
         """
         if = "IF" expr "THEN" statement* [ "ELSE" statement* "END_IF" ];
         """
         node = self.lex.node("if")
         self.lex.expect(TokenType.KEYWORD, "if")
-        condition = self.p_expr()
+        condition = self.__expression()
         self.lex.expect(TokenType.KEYWORD, "then")
         statements_if = self.lex.node("statements")
         while not self.lex.peek(TokenType.KEYWORD, "else") and not self.lex.peek(
             TokenType.KEYWORD, "end_if"
         ):
-            statements_if.children.append(self.p_statement())
+            statements_if.children.append(self.__statement())
         statements_else = self.lex.node("statements")
         if self.lex.peek(TokenType.KEYWORD, "else"):
             self.lex.next()
             while not self.lex.peek(TokenType.KEYWORD, "end_if"):
-                statements_else.children.append(self.p_statement())
+                statements_else.children.append(self.__statement())
         self.lex.expect(TokenType.KEYWORD, "end_if")
         node.children = [condition, statements_if, statements_else]
         return node
 
-    def p_assignment(self) -> Node:
+    def __assignment(self) -> Node:
         """
         assignment = ID ":=" expr ";";
         """
         node = self.lex.node("assign")
         lhs = self.lex.node("var", [self.lex.expect(TokenType.IDENT)])
         self.lex.expect(TokenType.DELIMITER, ":=")
-        rhs = self.p_expr()
+        rhs = self.__expression()
         self.lex.expect(TokenType.DELIMITER, ";")
         node.children = [lhs, rhs]
         return node
 
-    def p_expr(self) -> Node:
+    def __expression(self) -> Node:
         """
-        expr = mul;
+        expr = or;
         """
-        return self.p_mul()
+        return self.__or()
 
-    def p_mul(self) -> Node:
+    def __or(self) -> Node:
+        """
+        or = mul { "OR" mul };
+        """
+        node = self.__mul()
+        while self.lex.peek(TokenType.KEYWORD, "or"):
+            self.lex.next()
+            node = self.lex.node("or", [node, self.__mul()])
+        return node
+
+    def __mul(self) -> Node:
         """
         mul = unary { "*" unary };
         """
-        node = self.p_unary()
+        node = self.__unary()
         while self.lex.peek(TokenType.DELIMITER, "*"):
             self.lex.next()
-            node = self.lex.node("mul", [node, self.p_unary()])
+            node = self.lex.node("mul", [node, self.__unary()])
         return node
 
-    def p_unary(self) -> Node:
+    def __unary(self) -> Node:
         """
         unary = "TRUE" | "FALSE" | REAL | INT;
         """

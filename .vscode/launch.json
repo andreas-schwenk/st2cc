@@ -10,6 +10,7 @@
       "request": "launch",
       "module": "st2cc",
       "args": [
+        "-v",
         "--cfg",
         "examples/example-cfg.toml",
         "-i",
