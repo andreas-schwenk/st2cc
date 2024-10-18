@@ -151,9 +151,6 @@ class Interpreter:
 
     def handle_io(self, program: Node, set_input: bool) -> None:
         """sets the I/O test values to the currents node symbols, or asserts the output"""
-        if program.ident != "program":
-            print("ERROR: handle_io(..) must be applied to a 'program'")
-            sys.exit(-1)
         for sym in program.symbols.values():
             if sym.address is None:
                 continue
@@ -176,9 +173,9 @@ class Interpreter:
                     case _:
                         print("ERROR: unimplemented set_input_address_values(..)")
                         sys.exit(-1)
-                if set_input and sym.address.direction == AddressDirection.INPUT:
+                if set_input and sym.address.dir == AddressDirection.INPUT:
                     sym.value = value_node
-                elif not set_input and sym.address.direction == AddressDirection.OUTPUT:
+                elif not set_input and sym.address.dir == AddressDirection.OUTPUT:
                     actual = sym.value
                     expected = value_node
                     if sym.value is None or not Node.compare(actual, expected):
@@ -191,15 +188,11 @@ class Interpreter:
 
     def show_io(self, direction: AddressDirection) -> None:
         """shows i/o address values"""
-        match direction:
-            case AddressDirection.INPUT:
-                print("INPUT:")
-            case AddressDirection.OUTPUT:
-                print("OUTPUT:")
         if self.program is None:
             return
+        print("INPUT:" if direction == AddressDirection.INPUT else "OUTPUT:")
         for symbol in self.program.symbols.values():
-            if symbol.address is not None and symbol.address.direction == direction:
+            if symbol.address is not None and symbol.address.dir == direction:
                 if symbol.value is None:
                     print(f"  {symbol.ident}=NONE")
                 else:

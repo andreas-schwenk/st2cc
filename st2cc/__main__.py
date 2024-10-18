@@ -115,7 +115,7 @@ def main():
         interpreter = Interpreter(program, config)
         interpreter.run()
 
-    gen = CodeGenerator(program)
+    gen = CodeGenerator(program, config)
     gen.run()
 
 

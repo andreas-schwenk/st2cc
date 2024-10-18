@@ -11,18 +11,19 @@ License:
     GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 """
 
-from typing import Set
 import sys
 
 from st2cc.ast import Node
-from st2cc.sym import AddressDirection, DataType, BaseType
+from st2cc.sym import Address, AddressDirection, DataType, BaseType
+from st2cc.asf import filter_addr, filter_distinct_addr_bytes
 
 
 class CodeGenerator:
     """C Code generation"""
 
-    def __init__(self, program: Node) -> None:
+    def __init__(self, program: Node, config: dict[str, any]) -> None:
         self.program: Node = program
+        self.config: dict[str, any] = config
         self.standard_includes = {"inttypes.h"}
 
     def run(self) -> None:
@@ -65,12 +66,14 @@ class CodeGenerator:
 
     def __program(self, node: Node) -> str:
         """generates program-node"""
-        code = "int main(int argc, char *argv[]) {\n"
-        code += self.indent(self.generate_io_variables(node))
+        code = ""
+        code += self.generate_addr_defines(node) + "\n"
+        code += "int main(int argc, char *argv[]) {\n"
         code += self.indent(self.generate_variables(node))
         code += "    while (1) {\n"
         code += self.indent(self.generate_read_io(node), 2)
         code += self.indent(self.run_node(node.children[1]), 2)
+        code += self.indent(self.generate_write_io(node), 2)
         code += "    }\n"  # end of while(1)
         code += "    return 0;\n"  # end of main(..)
         code += "}\n"
@@ -122,69 +125,94 @@ class CodeGenerator:
         code = node.const_str()
         return code
 
-    def generate_io_variables(self, program: Node) -> str:
-        """generates IO variables"""
-        if program.ident != "program":
-            print("ERROR: generate_io(..) must be applied to a 'program'")
-            sys.exit(-1)
+    def generate_addr_defines(self, node: Node) -> str:
+        """generate defines for addresses"""
         code = ""
-
-        # TODO: filter for addresses e.g. in ast.py -> much code is repeated
-        # in this file + int.py
-
         for direction in [AddressDirection.INPUT, AddressDirection.OUTPUT]:
-            prefix = ""
-            handled: Set[int] = set()
-            match direction:
-                case AddressDirection.INPUT:
-                    prefix = "i"
-                case AddressDirection.OUTPUT:
-                    prefix = "q"
-            for sym in program.symbols.values():
-                addr = sym.address
-                if addr is None or sym.address.direction != direction:
-                    continue
-                if addr.position[0] in handled:
-                    continue
+            prefix = "I" if direction == AddressDirection.INPUT else "Q"
+            addr_list = filter_distinct_addr_bytes(
+                filter_addr(node, AddressDirection.INPUT)
+            )
+            physical_addr = 1000 if direction == AddressDirection.INPUT else 2000
+            if "addr" in self.config:
+                if prefix == "I" and "input" in self.config["addr"]:
+                    physical_addr = self.config["addr"]["input"]
+                if prefix == "Q" and "output" in self.config["addr"]:
+                    physical_addr = self.config["addr"]["output"]
+            for addr in addr_list:
+                code += f"#define ADDR_{prefix}{addr.pos[0]} {hex(physical_addr)}\n"
+                physical_addr += addr.get_num_bytes()
+        return code
+
+    def generate_variables(self, node: Node) -> str:
+        """generates IO variables and local variables"""
+        code = ""
+        for direction in [AddressDirection.INPUT, AddressDirection.OUTPUT]:
+            addr_list = filter_distinct_addr_bytes(filter_addr(node, direction))
+            prefix = "i" if direction == AddressDirection.INPUT else "q"
+            for addr in addr_list:
                 bits = 8 if addr.bits == 1 else addr.bits
-                code += f"uint{bits}_t {prefix}{addr.position[0]};\n"
-                handled.add(addr.position[0])
+                code += f"uint{bits}_t {prefix}{addr.pos[0]};\n"
+        for sym in node.symbols.values():
+            t = self.generate_type(sym.data_type)
+            code += f"{t} {sym.ident};\n"
         return code
 
     def generate_read_io(self, node: Node) -> str:
         """generates code to read IO variables"""
         code = ""
-        # read from address
-        handled: Set[int] = set()
-        for sym in node.symbols.values():
-            addr = sym.address
-            if addr is None or addr.direction != AddressDirection.INPUT:
-                continue
-            p = addr.position[0]
-            if p in handled:
-                continue
+        # read sensor data from address
+        addr_list = filter_distinct_addr_bytes(
+            filter_addr(node, AddressDirection.INPUT)
+        )
+        for addr in addr_list:
+            p = addr.pos[0]
             bits = 8 if addr.bits == 1 else addr.bits
             t = f"uint{bits}_t"
             code += f"i{p} = *(volatile {t} *)ADDR_I{p};\n"
-            handled.add(addr.position[0])
         # read to variables
         for sym in node.symbols.values():
             addr = sym.address
-            if addr is None or addr.direction != AddressDirection.INPUT:
+            if addr is None or addr.dir != AddressDirection.INPUT:
                 continue
-            p = addr.position[0]
+            p = addr.pos[0]
             shift = ""
-            if addr.bits == 1 and len(addr.position) > 1:
-                shift = f" & {hex(1 << addr.position[1])}"
+            if addr.bits == 1 and len(addr.pos) > 1:
+                shift = f" & {hex(1 << addr.pos[1])}"
             code += f"{sym.ident} = i{p}{shift};\n"
         return code
 
-    def generate_variables(self, ast: Node) -> str:
-        """generates variables from symbols"""
+    def generate_write_io(self, node: Node) -> str:
+        """generates code to write IO variables"""
         code = ""
-        for sym in ast.symbols.values():
-            t = self.generate_type(sym.data_type)
-            code += f"{t} {sym.ident};\n"
+        addr_list = filter_distinct_addr_bytes(
+            filter_addr(node, AddressDirection.OUTPUT)
+        )
+        # write actor data to variables
+        for addr in addr_list:
+            p = addr.pos[0]
+            c = f"q{p} = "
+            first = True
+            for sym in node.symbols.values():
+                if Address.compare(addr, sym.address, True):
+                    if not first:
+                        c += " | "
+                    if (
+                        sym.address.bits == 1
+                        and len(sym.address.pos) > 1
+                        and sym.address.pos[1] != 0
+                    ):
+                        c += f"({sym.ident} << {sym.address.pos[1]})"
+                    else:
+                        c += sym.ident
+                    first = False
+            code += c + ";\n"
+        # write to address
+        for addr in addr_list:
+            p = addr.pos[0]
+            bits = 8 if addr.bits == 1 else addr.bits
+            t = f"uint{bits}_t"
+            code += f"*(volatile {t} *)ADDR_Q{p} = q{p};\n"
         return code
 
     def generate_type(self, dtype: DataType) -> str:

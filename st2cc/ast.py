@@ -12,8 +12,7 @@ License:
 """
 
 from __future__ import annotations
-from typing import Dict
-from typing import List
+from typing import Dict, List
 
 
 from st2cc.sym import DataType, Sym, BaseType
@@ -84,6 +83,7 @@ class Node:
             if ident in n.symbols:
                 return n.symbols[ident]
             n = n.parent
+        return None
 
     def __str__(self) -> str:
         return self.custom_str()

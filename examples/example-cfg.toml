@@ -1,6 +1,6 @@
 [addr]
-input = 1000
-output = 2000
+input = 0x1000
+output = 0x2000
 
 [test]
 ix0 = [0b10, 0b01] # test sensor data

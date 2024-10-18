@@ -66,9 +66,22 @@ class Address:
     """Address for I/O"""
 
     def __init__(self) -> None:
-        self.direction: AddressDirection = AddressDirection.INPUT
+        self.dir: AddressDirection = AddressDirection.INPUT
         self.bits: int = 1
-        self.position: List[int] = [0]
+        self.pos: List[int] = [0]
+
+    @staticmethod
+    def compare(u: Address, v: Address, cmp_only_pos_0: bool = False) -> bool:
+        """compares two addresses"""
+        if u.dir != v.dir:
+            return False
+        if u.bits != v.bits:
+            return False
+        if cmp_only_pos_0 and u.pos[:1] != v.pos[:1]:
+            return False
+        if not cmp_only_pos_0 and u.pos != v.pos:
+            return False
+        return True
 
     def get_num_bytes(self) -> int:
         """returns the number of bytes"""
@@ -76,57 +89,19 @@ class Address:
 
     def get_byte_pos(self) -> int:
         """returns the position of the first byte"""
-        if len(self.position == 0):
+        if len(self.pos == 0):
             return 0
-        b = 0
-        match self.bits:
-            case 1:
-                b = self.position[0]
-            case 8:
-                b = self.position[0]
-            case 16:
-                b = 2 * self.position[0]
-            case 32:
-                b = 4 * self.position[0]
-        return b
-
-    def parse(self, data) -> None:
-        """parses the address"""
-        # direction
-        if data.startswith("I"):
-            self.direction = AddressDirection.INPUT
-            data = data[1:]
-        elif data.startswith("Q"):
-            self.direction = AddressDirection.OUTPUT
-            data = data[1:]
-        else:
-            print("unexpected error while parsing the address")  # TODO
-            sys.exit(-1)
-        # number of bits
-        if data.startswith("X"):
-            self.bits = 1
-            data = data[1:]
-        elif data.startswith("B"):
-            self.bits = 8
-            data = data[1:]
-        elif data.startswith("W"):
-            self.bits = 16
-            data = data[1:]
-        elif data.startswith("D"):
-            self.bits = 32
-            data = data[1:]
-        # position
-        self.position = list(map(int, data.split(".")))
+        return max(1, self.get_num_bytes()) * self.pos[0]
 
     def __str__(self) -> str:
         s = ""
-        match self.direction:
+        match self.dir:
             case AddressDirection.INPUT:
                 s += "I"
             case AddressDirection.OUTPUT:
                 s += "Q"
         s += {1: "X", 8: "B", 16: "W", 32: "D"}.get(self.bits)
-        s += ".".join(map(str, self.position))
+        s += ".".join(map(str, self.pos))
         return s
 
 
