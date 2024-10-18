@@ -17,9 +17,24 @@ import sys
 
 from st2cc.ast import Node
 
-KEYWORDS = "at,bool,else,end_if,end_program,end_var,false,if,int,or,program,real,then,true,var".split(
-    ","
-)
+KEYWORDS = [
+    "and",
+    "at",
+    "bool",
+    "else",
+    "end_if",
+    "end_program",
+    "end_var",
+    "false",
+    "if",
+    "int",
+    "or",
+    "program",
+    "real",
+    "then",
+    "true",
+    "var",
+]
 
 
 class TokenType(Enum):
@@ -117,7 +132,10 @@ class Lexer:
         # identifier or keyword
         self.token.type = TokenType.IDENT
         while self.pos < len(self.src):
-            if not (self.src[self.pos].isalpha() or self.src[self.pos] == "_"):
+            a = self.src[self.pos].isalpha()
+            d = self.src[self.pos].isdigit()
+            u = self.src[self.pos] == "_"
+            if not (a or d or u):
                 break
             self.token.ident += self.src[self.pos].lower()
             self.pos += 1
@@ -174,7 +192,7 @@ class Lexer:
         # delimiter
         self.token.type = TokenType.DELIMITER
         ch = self.src[self.pos]
-        if self.src[self.pos] in [":", "*", "+", ";"]:
+        if self.src[self.pos] in [":", "*", "+", ";", "(", ")"]:
             self.token.ident += self.src[self.pos]
             self.pos += 1
             self.col += 1

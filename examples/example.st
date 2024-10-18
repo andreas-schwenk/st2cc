@@ -1,15 +1,16 @@
 PROGRAM Main
     VAR
-        start_button_a AT %IX0.0: BOOL;
-        start_button_b AT %IX0.1: BOOL;
-        motor_output_a AT %QX0.0: BOOL;
-        motor_output_b AT %QX0.1: BOOL;
+        sensor0 AT %IX0.0: BOOL;
+        sensor1 AT %IX0.1: BOOL;
+        sensor2 AT %IX0.2: BOOL;
+        actuator0 AT %QX0.0: BOOL;
+        actuator1 AT %QX0.1: BOOL;
     END_VAR
-    IF start_button_a OR start_button_b THEN
-        motor_output_a := TRUE;
-        motor_output_b := TRUE;
+    IF sensor0 OR (sensor1 AND sensor2) THEN
+        actuator0 := TRUE;
+        actuator1 := TRUE;
     ELSE
-        motor_output_a := FALSE;
-        motor_output_b := FALSE;
+        actuator0 := FALSE;
+        actuator1 := FALSE;
     END_IF
 END_PROGRAM

@@ -92,6 +92,8 @@ class Interpreter:
                 result = self.__assign(node)
             case "or":
                 result = self.__or(node)
+            case "and":
+                result = self.__and(node)
             case "const":
                 result = self.__const(node)
             case _:
@@ -135,6 +137,13 @@ class Interpreter:
         o1 = self.run_node(node.children[0])
         if Node.compare(o1, Node.create_const_bool(True)):
             return Node.create_const_bool(True)
+        return self.run_node(node.children[1])
+
+    def __and(self, node: Node) -> Node:
+        """interprets and-node. Implemented as short-circuit evaluation"""
+        o1 = self.run_node(node.children[0])
+        if Node.compare(o1, Node.create_const_bool(False)):
+            return Node.create_const_bool(False)
         return self.run_node(node.children[1])
 
     def __const(self, node: Node) -> Node:

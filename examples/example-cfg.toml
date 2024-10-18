@@ -3,5 +3,5 @@ input = 0x1000
 output = 0x2000
 
 [test]
-ix0 = [0b10, 0b01] # test sensor data
-qx0 = [0b11, 0b11] # assert actuator data
+ix0 = [0b011, 0b000] # test sensor data
+qx0 = [0b11, 0b00]   # assert actuator data

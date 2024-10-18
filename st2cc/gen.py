@@ -21,13 +21,14 @@ from st2cc.asf import filter_addr, filter_distinct_addr_bytes
 class CodeGenerator:
     """C Code generation"""
 
-    def __init__(self, program: Node, config: dict[str, any]) -> None:
+    def __init__(self, program: Node, config: dict[str, any], verbose: bool) -> None:
+        self.verbose: bool = verbose
         self.program: Node = program
         self.config: dict[str, any] = config
         self.standard_includes = {"inttypes.h"}
 
-    def run(self) -> None:
-        """start code generation"""
+    def run(self) -> str:
+        """run code generation"""
         code = ""
         code += "// This file was generated automatically by st2cc.\n"
         code += "// Visit github.com/andreas-schwenk/st2cc\n"
@@ -36,9 +37,10 @@ class CodeGenerator:
         for incl in sorted(self.standard_includes):
             code += f"#include <{incl}>\n"
         code += f"\n{core}"
-        # TODO: only on verbose mode; write to file
-        print("----- GENERATED C CODE -----")
-        print(code)
+        if self.verbose:
+            print("----- GENERATED C CODE -----")
+            print(code)
+        return code
 
     def run_node(self, node: Node, is_statement=False) -> str:
         """generates node recursively"""
@@ -52,6 +54,8 @@ class CodeGenerator:
                 code = self.__if(node)
             case "or":
                 code = self.__or(node)
+            case "and":
+                code = self.__and(node)
             case "var":
                 code = self.__var(node)
             case "assign":
@@ -102,7 +106,13 @@ class CodeGenerator:
         """generates or-node"""
         o1 = self.run_node(node.children[0])
         o2 = self.run_node(node.children[1])
-        return f"{o1} || {o2}"  # TODO: parentheses, based on o1, o2!!
+        return f"({o1} || {o2})"  # TODO: parentheses, based on o1, o2!!
+
+    def __and(self, node: Node) -> str:
+        """generates and-node"""
+        o1 = self.run_node(node.children[0])
+        o2 = self.run_node(node.children[1])
+        return f"({o1} && {o2})"  # TODO: parentheses, based on o1, o2!!
 
     def __var(self, node: Node) -> str:
         """generates var-node"""

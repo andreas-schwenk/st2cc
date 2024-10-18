@@ -54,7 +54,7 @@ class SemanticAnalysis:
                 self.__if(node)
             case "var":
                 res = self.__var(node)
-            case "assign" | "mul" | "or":
+            case "assign" | "mul" | "or" | "and":
                 res = self.__bin_op(node)
             case "bool" | "int":
                 res = self.__const(node)

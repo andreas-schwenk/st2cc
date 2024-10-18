@@ -128,12 +128,22 @@ class Parser:
 
     def __or(self) -> Node:
         """
-        or = mul { "OR" mul };
+        or = and { "OR" and };
         """
-        node = self.__mul()
+        node = self.__and()
         while self.lex.peek(TokenType.KEYWORD, "or"):
             self.lex.next()
-            node = self.lex.node("or", [node, self.__mul()])
+            node = self.lex.node("or", [node, self.__and()])
+        return node
+
+    def __and(self) -> Node:
+        """
+        and = mul { "AND" mul };
+        """
+        node = self.__mul()
+        while self.lex.peek(TokenType.KEYWORD, "and"):
+            self.lex.next()
+            node = self.lex.node("and", [node, self.__mul()])
         return node
 
     def __mul(self) -> Node:
@@ -148,25 +158,32 @@ class Parser:
 
     def __unary(self) -> Node:
         """
-        unary = "TRUE" | "FALSE" | REAL | INT;
+        unary = "TRUE" | "FALSE" | REAL | INT | "(" expr ")";
         """
+        res: Node = None
         if self.lex.peek(TokenType.KEYWORD, "true"):
             self.lex.next()
-            return self.lex.node("bool", [self.lex.node("true")])
-        if self.lex.peek(TokenType.KEYWORD, "false"):
+            res = self.lex.node("bool", [self.lex.node("true")])
+        elif self.lex.peek(TokenType.KEYWORD, "false"):
             self.lex.next()
-            return self.lex.node("bool", [self.lex.node("false")])
-        if self.lex.peek(TokenType.REAL):
+            res = self.lex.node("bool", [self.lex.node("false")])
+        elif self.lex.peek(TokenType.REAL):
             tk = self.lex.token.ident
             self.lex.next()
-            return self.lex.node("real", [self.lex.node(tk)])
-        if self.lex.peek(TokenType.INT):
+            res = self.lex.node("real", [self.lex.node(tk)])
+        elif self.lex.peek(TokenType.INT):
             tk = self.lex.token.ident
             self.lex.next()
-            return self.lex.node("int", [self.lex.node(tk)])
-        if self.lex.peek(TokenType.IDENT):
+            res = self.lex.node("int", [self.lex.node(tk)])
+        elif self.lex.peek(TokenType.IDENT):
             tk = self.lex.token.ident
             self.lex.next()
-            return self.lex.node("var", [self.lex.node(tk)])
-        self.lex.error("expected unary expression")
-        return None
+            res = self.lex.node("var", [self.lex.node(tk)])
+        elif self.lex.peek(TokenType.DELIMITER, "("):
+            self.lex.next()
+            expr = self.__expression()
+            self.lex.expect(TokenType.DELIMITER, ")")
+            res = expr
+        else:
+            self.lex.error("expected unary expression")
+        return res

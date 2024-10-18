@@ -19,6 +19,9 @@ Options:
     -h, --help
         Shows the help message and exists.
 
+    --cfg CONFIG_FILE.toml
+        Provides a config file.
+
     -i, --interpret
         Interprets the program in the input file.
 
@@ -47,6 +50,7 @@ License:
 from __future__ import annotations
 import argparse
 import tomllib
+import os
 
 from st2cc.lex import Lexer
 from st2cc.par import Parser
@@ -77,6 +81,7 @@ def main():
     verbose = args.v
     cfg_file_path = args.cfg
     input_file_path = args.input_file
+    output_file_path = os.path.splitext(input_file_path)[0] + ".c"
 
     config = {}
     if len(cfg_file_path) > 0:
@@ -86,14 +91,8 @@ def main():
     st_src: str = ""
     with open(input_file_path, encoding="utf-8") as f:
         st_src = f.read()
-        f.close()
 
     lexer = Lexer(st_src)
-    # lexer.next()
-    # while lexer.token.type != TokenType.END:
-    #    print(lexer.token)
-    #    lexer.next()
-    # sys.exit(0)
 
     parser = Parser(lexer)
     program = parser.parse()
@@ -110,13 +109,14 @@ def main():
         print("--------")
 
     if interpret:
-        # test_data = TestData()
-        # test_data.read(test_file_path)
         interpreter = Interpreter(program, config)
         interpreter.run()
 
-    gen = CodeGenerator(program, config)
-    gen.run()
+    gen = CodeGenerator(program, config, verbose)
+    c_src = gen.run()
+
+    with open(output_file_path, mode="w", encoding="utf-8") as f:
+        f.write(c_src)
 
 
 if __name__ == "__main__":
