@@ -102,7 +102,7 @@ def main():
     # read configuration file (if specified)
     config = {}
     if len(cfg_file_path) > 0:
-        with open("examples/example-cfg.toml", "rb") as f:
+        with open(cfg_file_path, "rb") as f:
             config = tomllib.load(f)
 
     # read structured text source code from file

@@ -22,15 +22,15 @@ from st2cc.pah import parse_address
 
 class SemanticAnalysis:
     """
-    Semantic analysis implementation. Checks data types, creates the symbol tables
-    and determines the data types for each node. The result is an altered AST.
-
-    Attributes:
-        ast (Node): The abstract syntax tree.
-
-    Methods:
-        run()
-            Runs the semantic analysis on the given abstract syntax tree.
+    Semantic analysis implementation: This phase checks data types,
+    creates symbol tables, and determines the data types for each node in the
+    abstract syntax tree (AST). The output is a modified AST with type
+    annotations. The implementation follows a term rewriting system (TRS)
+    approach. The rules are defined within the methods in the form U -> V,
+    where U represents the pattern to be matched, and V represents the
+    substitution. Type annotations are denoted by “:”. For example, expr:bool
+    assigns the type bool to the expression expr. Queries applied to the symbol
+    table of a node are indicated by “#”.
     """
 
     def __init__(self, ast: Node):
@@ -66,8 +66,11 @@ class SemanticAnalysis:
         return res
 
     def __program(self, node: Node) -> None:
-        """semantical analysis for program-node"""
-        # build symbols from "var" subtree
+        """
+        "program"(ID,variables,statements)
+            -> "program"(ID,statements) # symbols <- variables;
+        """
+        # build symbols from variables subtree
         if node.children[1] is not None:
             for v in node.children[1].children:
                 ident = v.children[0].ident
@@ -88,7 +91,9 @@ class SemanticAnalysis:
             self.__run_recursively(s)
 
     def __if(self, node: Node) -> None:
-        """semantical analysis for if-node"""
+        """
+        "if"(expr,a,b) -> "if"(expr:bool,a,b);
+        """
         cond = node.children[0]
         cond_data_type = self.__run_recursively(cond)
         if cond_data_type.base != BaseType.BOOL:
@@ -111,7 +116,7 @@ class SemanticAnalysis:
         return sym.data_type
 
     def __bin_op(self, node: Node) -> DataType:
-        """semantical analysis for binary-operation-node"""
+        """op(u,v) -> op(u,v):type(u), with type(u)==type(v)"""
         lhs = node.children[0]
         lhs_data_type = self.__run_recursively(lhs)
         rhs = node.children[1]
@@ -127,7 +132,10 @@ class SemanticAnalysis:
         return lhs_data_type
 
     def __const(self, node: Node) -> DataType:
-        """semantical analysis for const-node"""
+        """
+        "bool"(value) -> "const"(value):bool;
+        "int"(value) -> "const"(value):int;
+        """
         match node.ident:
             case "bool":
                 node.data_type = DataType(BaseType.BOOL)

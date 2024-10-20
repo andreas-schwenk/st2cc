@@ -2,7 +2,7 @@
 asf.py
 
 Description:
-    Abstract syntax filtering
+    Filtering functions for the abstract syntax tree.
 
 Author:
     Andreas Schwenk (schwenk@member.fsf.org)
@@ -19,14 +19,8 @@ from st2cc.sym import AddressDirection, Address
 
 def filter_addr(node: Node, addr_dir: AddressDirection) -> List[Address]:
     """
-    Filters addresses from nodes symbols by direction.
-
-    Args:
-        node (Node): The AST node that contains the symbol table.
-        addr_dir (AddressDirection): The I/O direction.
-
-    Returns:
-        List[Address]: The address list.
+    Filters a list of node symbol addresses based on direction and returns a
+    modified list that meets the specified direction criteria.
     """
     res: List[Address] = []
     for sym in node.symbols.values():

@@ -1,0 +1,7 @@
+[addr]
+input = 0x1000
+output = 0x2000
+
+[test]
+ix0 = [3, 5]
+qx0 = [6, 120]

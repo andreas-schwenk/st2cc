@@ -215,6 +215,7 @@ class Parser:
             | REAL -> "real"(real)
             | INT -> "int"(int)
             | ID -> "var"(ID)
+            | ID "(" expr@args { "," expr@args } ")" -> "call"(...args)
             | "(" expr ")" -> expr;
         """
         res: Node = None
@@ -235,7 +236,17 @@ class Parser:
         elif self.lex.peek(TokenType.IDENT):
             tk = self.lex.token.ident
             self.lex.next()
-            res = self.lex.node("var", [self.lex.node(tk)])
+            if self.lex.peek(TokenType.DELIMITER, "("):
+                self.lex.next()
+                args: List[Node] = []
+                args.append(self.__expression())
+                while self.lex.peek(TokenType.DELIMITER, ","):
+                    self.lex.next()
+                    args.append(self.__expression())
+                self.lex.expect(TokenType.DELIMITER, ")")
+                res = self.lex.node("call", args)
+            else:
+                res = self.lex.node("var", [self.lex.node(tk)])
         elif self.lex.peek(TokenType.DELIMITER, "("):
             self.lex.next()
             expr = self.__expression()

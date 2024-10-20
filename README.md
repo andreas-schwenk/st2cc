@@ -2,9 +2,10 @@
 
 <img src="logo.svg?v=5" width="128" height="128"/>
 
-Structured Text (ST) to C Compiler
+`st2cc` is a Structured Text (ST) to C compiler and interpreter, developed in 2024 by Andreas Schwenk (schwenk@member.fsf.org).
 
-Written 2024 by Andreas Schwenk <schwenk@member.fsf.org>
+[!CAUTION]
+Work in progress: Only basic, trivial examples are currently functional.
 
 # License
 
