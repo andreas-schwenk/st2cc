@@ -12,12 +12,38 @@ License:
     GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 """
 
+from typing import List
+
 from st2cc.ast import Node
 from st2cc.lex import Lexer, TokenType
 
 
 class Parser:
-    """Parser"""
+    """
+    This class implements a Structured Text (ST) parser. Each parsing method is
+    prefixed with __ and corresponds to a specific parsing rule. Every rule is
+    defined in the form r = G -> E;
+
+    G represents the formal grammar, specified in Extended Backus-Naur Form
+    (EBNF):
+    - ID, INT, REAL, ADDR and quoted strings (e.g. >>"VAR"<<) are terminal tokens
+    - Identifiers (e.g. >>expr<<) are non-terminals, which refer to another rule
+    - { }  denotes a repetition (zero or more occurrences)
+    - [ ]  denotes a optionality (zero or one occurrence)
+    - @    defines an alternative name for a non-terminal
+
+    E = r(X, Y, ...) | U  is a generated expression. Generated expressions
+    collectively form the synthesized Abstract Syntax Tree (AST).
+    - r is a constant identifier
+    - X, Y, ... are the arguments (recursively defined subnodes).
+    - U is a unary expression
+    Unary expressions have one of the following forms:
+    - Identifiers refer to another generated expression
+    - [ ]  denotes optionality. The implementation uses >>None<< for zero occurrences
+    - quotes strings (e.g. >>"bool"<<) are terminal values
+    - ... is the rest-operator, which splits the repetition from grammar into
+      a list of arguments.
+    """
 
     def __init__(self, lex: Lexer) -> None:
         self.lex: Lexer = lex
@@ -31,17 +57,15 @@ class Parser:
 
     def __program(self) -> Node:
         """
-        program = "PROGRAM" ID "VAR" variable* "END_VAR" statement* "END_PROGRAM";
+        program = "program" ID [variables] statements "end_program"
+            -> "program"(ID, [variables], statements);
         """
         node = self.lex.expect(TokenType.KEYWORD, "program")
         ident = self.lex.expect(TokenType.IDENT)
-        variables = self.lex.expect(TokenType.KEYWORD, "var")
-        while not self.lex.peek(TokenType.KEYWORD, "end_var"):
-            variables.children.append(self.__variable())
-        self.lex.expect(TokenType.KEYWORD, "end_var")
-        statements = self.lex.node("statements")
-        while not self.lex.peek(TokenType.KEYWORD, "end_program"):
-            statements.children.append(self.__statement())
+        variables = None
+        if self.lex.peek(TokenType.KEYWORD, "var"):
+            variables = self.__variables()
+        statements = self.__statements(["end_program"])
         node.children = [
             ident,
             variables,
@@ -49,9 +73,34 @@ class Parser:
         ]
         return node
 
+    def __statements(self, stop_keywords: List[str]) -> Node:
+        """
+        statements = {statement}
+            -> "statements"(...statement);
+        """
+        statements = self.lex.node("statements")
+        while not self.lex.is_end():
+            if self.lex.peek_list(TokenType.KEYWORD, stop_keywords):
+                break
+            statements.children.append(self.__statement())
+        return statements
+
+    def __variables(self) -> Node:
+        """
+        variables = "VAR" {variable} "END_VAR"
+            -> "variables"(...variable);
+        """
+        variables = self.lex.expect(TokenType.KEYWORD, "var")
+        variables.ident = "variables"
+        while not self.lex.is_end() and not self.lex.peek(TokenType.KEYWORD, "end_var"):
+            variables.children.append(self.__variable())
+        self.lex.expect(TokenType.KEYWORD, "end_var")
+        return variables
+
     def __variable(self) -> Node:
         """
         variable = ID [ "AT" ADDR ] ":" type ";"
+            -> "variable"(ID, type, ["addr"(ADDR)]);
         """
         node = self.lex.node("variable")
         ident = self.lex.expect(TokenType.IDENT)
@@ -67,7 +116,9 @@ class Parser:
 
     def __type(self) -> Node:
         """
-        type = "BOOL" | "INT" | "REAL";
+        type = "BOOL" -> "base"("bool")
+            | "INT" -> "base"("int")
+            | "REAL" -> "base"("real");
         """
         node = self.lex.node("base")
         b = self.lex.expect(TokenType.KEYWORD)
@@ -78,7 +129,7 @@ class Parser:
 
     def __statement(self) -> Node:
         """
-        statement = if | assignment;
+        statement = if -> if | assignment -> assignment;
         """
         match self.lex.token.ident:
             case "if":
@@ -88,29 +139,26 @@ class Parser:
 
     def __if(self) -> Node:
         """
-        if = "IF" expr "THEN" statement* [ "ELSE" statement* "END_IF" ];
+        if = "IF" expr "THEN" statements@a [ "ELSE" statements@b "END_IF" ]
+            -> "if"(expr, a, [b]);
         """
         node = self.lex.node("if")
         self.lex.expect(TokenType.KEYWORD, "if")
         condition = self.__expression()
         self.lex.expect(TokenType.KEYWORD, "then")
-        statements_if = self.lex.node("statements")
-        while not self.lex.peek(TokenType.KEYWORD, "else") and not self.lex.peek(
-            TokenType.KEYWORD, "end_if"
-        ):
-            statements_if.children.append(self.__statement())
-        statements_else = self.lex.node("statements")
+        statements_if = self.__statements(["elseif", "else", "end_if"])
+        statements_else: Node = None
         if self.lex.peek(TokenType.KEYWORD, "else"):
             self.lex.next()
-            while not self.lex.peek(TokenType.KEYWORD, "end_if"):
-                statements_else.children.append(self.__statement())
+            statements_else = self.__statements(["elseif", "else", "end_if"])
         self.lex.expect(TokenType.KEYWORD, "end_if")
         node.children = [condition, statements_if, statements_else]
         return node
 
     def __assignment(self) -> Node:
         """
-        assignment = ID ":=" expr ";";
+        assignment = ID ":=" expr ";"
+            -> "assign"("var"(ID), expr);
         """
         node = self.lex.node("assign")
         lhs = self.lex.node("var", [self.lex.expect(TokenType.IDENT)])
@@ -122,13 +170,15 @@ class Parser:
 
     def __expression(self) -> Node:
         """
-        expr = or;
+        expr = or
+            -> or;
         """
         return self.__or()
 
     def __or(self) -> Node:
         """
-        or = and { "OR" and };
+        or = and { "OR" and }
+            -> and | "or"(or, and);
         """
         node = self.__and()
         while self.lex.peek(TokenType.KEYWORD, "or"):
@@ -138,7 +188,8 @@ class Parser:
 
     def __and(self) -> Node:
         """
-        and = mul { "AND" mul };
+        and = mul { "AND" mul }
+            -> mul | "and"(and, mul);
         """
         node = self.__mul()
         while self.lex.peek(TokenType.KEYWORD, "and"):
@@ -148,7 +199,8 @@ class Parser:
 
     def __mul(self) -> Node:
         """
-        mul = unary { "*" unary };
+        mul = unary { "*" unary }
+            -> unary | "mul"(mul, unary);
         """
         node = self.__unary()
         while self.lex.peek(TokenType.DELIMITER, "*"):
@@ -158,7 +210,12 @@ class Parser:
 
     def __unary(self) -> Node:
         """
-        unary = "TRUE" | "FALSE" | REAL | INT | "(" expr ")";
+        unary = "TRUE" -> "bool"("true")
+            | "FALSE" -> "bool"("false")
+            | REAL -> "real"(real)
+            | INT -> "int"(int)
+            | ID -> "var"(ID)
+            | "(" expr ")" -> expr;
         """
         res: Node = None
         if self.lex.peek(TokenType.KEYWORD, "true"):

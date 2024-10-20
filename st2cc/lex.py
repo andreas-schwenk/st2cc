@@ -15,26 +15,8 @@ from enum import Enum
 from typing import List
 import sys
 
+from st2cc.lec import KEYWORDS, DELIMITERS, DELIMITERS2
 from st2cc.ast import Node
-
-KEYWORDS = [
-    "and",
-    "at",
-    "bool",
-    "else",
-    "end_if",
-    "end_program",
-    "end_var",
-    "false",
-    "if",
-    "int",
-    "or",
-    "program",
-    "real",
-    "then",
-    "true",
-    "var",
-]
 
 
 class TokenType(Enum):
@@ -85,15 +67,23 @@ class Lexer:
         self.next()
         return n
 
-    def peek(self, t: TokenType, ident="") -> bool:
+    def peek(self, t: TokenType, ident: str = "") -> bool:
         """checks for the requested token w/o consuming it"""
         return self.token.type == t and (len(ident) == 0 or self.token.ident == ident)
 
+    def peek_list(self, t: TokenType, ident_list: List[str]) -> bool:
+        """checks for the requested tokens w/o consuming it"""
+        return self.token.type == t and self.token.ident in ident_list
+
     def node(self, ident: str, children: List[Node] = None) -> Node:
-        """Creates an AST node at current position"""
+        """Creates an AST node at the current position"""
         if children is None:
             children = []
         return Node(ident, self.token.row, self.token.col, children)
+
+    def is_end(self):
+        """is end?"""
+        return self.token.type == TokenType.END
 
     def next(self) -> None:
         """sets self.token to the next input token"""
@@ -192,14 +182,14 @@ class Lexer:
         # delimiter
         self.token.type = TokenType.DELIMITER
         ch = self.src[self.pos]
-        if self.src[self.pos] in [":", "*", "+", ";", "(", ")"]:
+        if self.src[self.pos] in DELIMITERS:
             self.token.ident += self.src[self.pos]
             self.pos += 1
             self.col += 1
             if (
                 self.pos < len(self.src)
-                and self.token.ident == ":"
-                and self.src[self.pos] in ["="]
+                and self.token.ident in DELIMITERS2
+                and self.src[self.pos] in DELIMITERS2[self.token.ident]
             ):
                 self.token.ident += self.src[self.pos]
                 self.pos += 1

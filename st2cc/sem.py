@@ -68,14 +68,15 @@ class SemanticAnalysis:
     def __program(self, node: Node) -> None:
         """semantical analysis for program-node"""
         # build symbols from "var" subtree
-        for v in node.children[1].children:
-            ident = v.children[0].ident
-            data_type = DataType(BaseType[v.children[1].children[0].ident.upper()])
-            sym = Sym(ident, data_type)
-            addr = v.children[2]
-            if addr is not None:
-                sym.address = parse_address(addr.children[0].ident[1:])
-            node.symbols[ident] = sym
+        if node.children[1] is not None:
+            for v in node.children[1].children:
+                ident = v.children[0].ident
+                data_type = DataType(BaseType[v.children[1].children[0].ident.upper()])
+                sym = Sym(ident, data_type)
+                addr = v.children[2]
+                if addr is not None:
+                    sym.address = parse_address(addr.children[0].ident[1:])
+                node.symbols[ident] = sym
         # remove var subtree
         del node.children[1]
         # process statements

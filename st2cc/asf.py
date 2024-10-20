@@ -1,7 +1,14 @@
 """
-TODO: docs
+asf.py
 
-abstract syntax filtering
+Description:
+    Abstract syntax filtering
+
+Author:
+    Andreas Schwenk (schwenk@member.fsf.org)
+
+License:
+    GPLv3 (https://www.gnu.org/licenses/gpl-3.0.html)
 """
 
 from typing import List, Set
@@ -11,7 +18,16 @@ from st2cc.sym import AddressDirection, Address
 
 
 def filter_addr(node: Node, addr_dir: AddressDirection) -> List[Address]:
-    """filters addresses from nodes symbols by direction"""
+    """
+    Filters addresses from nodes symbols by direction.
+
+    Args:
+        node (Node): The AST node that contains the symbol table.
+        addr_dir (AddressDirection): The I/O direction.
+
+    Returns:
+        List[Address]: The address list.
+    """
     res: List[Address] = []
     for sym in node.symbols.values():
         if sym.address is None or sym.address.dir != addr_dir:
