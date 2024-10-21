@@ -3,6 +3,8 @@
     "mechatroner.rainbow-csv",
     "ms-python.python",
     "ms-python.debugpy",
-    "tamasfe.even-better-toml"
+    "tamasfe.even-better-toml",
+    "serhioromano.vscode-st",
+    "ms-python.black-formatter"
   ]
 }

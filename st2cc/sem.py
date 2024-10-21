@@ -46,15 +46,17 @@ class SemanticAnalysis:
         """
         res: DataType = None
         match node.ident:
+            case "file":
+                self.__file(node)
             case "program":
                 self.__program(node)
             case "statements":
                 self.__statements(node)
             case "if":
                 self.__if(node)
-            case "var":
-                res = self.__var(node)
-            case "assign" | "mul" | "or" | "and":
+            case "variable":
+                res = self.__variable(node)
+            case "assign" | "mul" | "or" | "and" | "add" | "sub":
                 res = self.__bin_op(node)
             case "bool" | "int":
                 res = self.__const(node)
@@ -64,6 +66,13 @@ class SemanticAnalysis:
                 )
                 return None
         return res
+
+    def __file(self, node: Node) -> None:
+        """semantical analysis for file-node"""
+        if len(node.get_children("program")) != 1:
+            self.__error(node, "exactly one 'PROGRAM' must be implemented")
+        for s in node.children:
+            self.__run_recursively(s)
 
     def __program(self, node: Node) -> None:
         """
@@ -106,7 +115,7 @@ class SemanticAnalysis:
         for s in statements_else.children:
             self.__run_recursively(s)
 
-    def __var(self, node: Node) -> DataType:
+    def __variable(self, node: Node) -> DataType:
         """semantical analysis for var-node"""
         ident = node.children[0].ident
         sym = node.get_symbol(ident)

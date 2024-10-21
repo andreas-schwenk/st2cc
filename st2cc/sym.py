@@ -113,6 +113,8 @@ class Sym:
         self.address: Address = None
         self.value: Node = None
 
+        # TODO: reference to AST (e.g. for a function)
+
     def __str__(self) -> None:
         s = f"{self.ident}:{self.data_type}"
         if self.address is not None:

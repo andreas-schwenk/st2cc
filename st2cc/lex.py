@@ -111,6 +111,38 @@ class Lexer:
                 while self.pos < len(self.src) and self.src[self.pos] != "\n":
                     self.pos += 1
                     self.col += 1
+            elif (
+                ch == "("
+                and self.pos + 1 < len(self.src)
+                and self.src[self.pos + 1] == "*"
+            ):
+                # multi line comment
+                self.pos += 2
+                self.col += 2
+                while (
+                    self.pos < len(self.src) + 1
+                    and self.src[self.pos] != "*"
+                    and self.src[self.pos + 1] != ")"
+                ):
+                    self.pos += 1
+                    match self.src[self.pos]:
+                        case " ":
+                            self.col += 1
+                        case "\t":
+                            self.col += 4
+                        case "\n":
+                            self.row += 1
+                            self.col = 1
+                        case _:
+                            self.col += 1
+                if (
+                    self.pos < len(self.src) + 1
+                    and self.src[self.pos] == "*"
+                    and self.src[self.pos + 1] == ")"
+                ):
+                    self.pos += 2
+                    self.col += 2
+                ch = self.src[self.pos]
             else:
                 break
         # create a new token

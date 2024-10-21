@@ -115,30 +115,30 @@ def main():
 
     # initialize the parser and run it
     parser = Parser(lexer)
-    program = parser.parse()
+    ast = parser.parse()
 
     # output the abstract syntax tree (AST)
     if verbose:
         print("-------- parser output: ------")
-        print(str(program))
+        print(str(ast))
         print("--------")
 
     # initialize the semantic analysis and run it. The program will partly
     # be rewritten. We will call the result intermediate code
-    sem = SemanticAnalysis(program)
+    sem = SemanticAnalysis(ast)
     sem.run()
     if verbose:
         print("-------- SEMANTIC ANALYSIS output: -----")
-        print(str(program))
+        print(str(ast))
         print("--------")
 
     # interpret the intermediate code (if demanded)
     if interpret:
-        interpreter = Interpreter(program, config)
+        interpreter = Interpreter(ast, config)
         interpreter.run()
 
     # generate C code
-    gen = CodeGenerator(program, config, verbose)
+    gen = CodeGenerator(ast, config, verbose)
     c_src = gen.run()
 
     # write the generated C code

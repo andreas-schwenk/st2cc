@@ -21,9 +21,9 @@ from st2cc.asf import filter_addr, filter_distinct_addr_bytes
 class CodeGenerator:
     """C Code generation"""
 
-    def __init__(self, program: Node, config: dict[str, any], verbose: bool) -> None:
+    def __init__(self, root: Node, config: dict[str, any], verbose: bool) -> None:
         self.verbose: bool = verbose
-        self.program: Node = program
+        self.root: Node = root
         self.config: dict[str, any] = config
         self.standard_includes = {"inttypes.h"}
 
@@ -33,7 +33,7 @@ class CodeGenerator:
         code += "// This file was generated automatically by st2cc.\n"
         code += "// Visit github.com/andreas-schwenk/st2cc\n"
         code += "\n"
-        core = self.run_node(self.program)
+        core = self.run_node(self.root)
         for incl in sorted(self.standard_includes):
             code += f"#include <{incl}>\n"
         code += f"\n{core}"
@@ -46,6 +46,8 @@ class CodeGenerator:
         """generates node recursively"""
         code = ""
         match node.ident:
+            case "file":
+                code = self.__file(node)
             case "program":
                 code = self.__program(node)
             case "statements":
@@ -56,8 +58,8 @@ class CodeGenerator:
                 code = self.__or(node)
             case "and":
                 code = self.__and(node)
-            case "var":
-                code = self.__var(node)
+            case "variable":
+                code = self.__variable(node)
             case "assign":
                 code = self.__assign(node, is_statement)
             case "const":
@@ -67,6 +69,10 @@ class CodeGenerator:
                     node, f"Generation: UNIMPLEMENTED NODE TYPE '{node.ident}'"
                 )
         return code
+
+    def __file(self, node: Node) -> str:
+        program = node.get_children("program")[0]
+        return self.run_node(program)
 
     def __program(self, node: Node) -> str:
         """generates program-node"""
@@ -114,8 +120,8 @@ class CodeGenerator:
         o2 = self.run_node(node.children[1])
         return f"({o1} && {o2})"  # TODO: parentheses, based on o1, o2!!
 
-    def __var(self, node: Node) -> str:
-        """generates var-node"""
+    def __variable(self, node: Node) -> str:
+        """generates variable-node"""
         ident = node.children[0].ident
         sym = node.get_symbol(ident)
         return sym.ident

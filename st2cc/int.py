@@ -53,8 +53,8 @@ class TestData:
 class Interpreter:
     """ST intermediate code interpretation"""
 
-    def __init__(self, program: Node, config: dict[str, any]) -> None:
-        self.program: Node = program
+    def __init__(self, root: Node, config: dict[str, any]) -> None:
+        self.root: Node = root
         self.config: dict[str, any] = config
         self.cycle: int = 0
         self.test_data: TestData = TestData()
@@ -69,25 +69,28 @@ class Interpreter:
         for i in range(0, n):
             print(f"--- Running cycle {i+1} of {n} ---")
             self.cycle = i
-            self.handle_io(self.program, True)  # sets the input for addresses
-            self.show_io(AddressDirection.INPUT)
-            self.run_node(self.program)
-            self.show_io(AddressDirection.OUTPUT)
-            self.handle_io(self.program, False)  # asserts the output for addresses
+            program = self.root.get_children("program")[0]
+            self.handle_io(program, True)  # sets the input for addresses
+            self.show_io(program, AddressDirection.INPUT)
+            self.run_node(self.root)
+            self.show_io(program, AddressDirection.OUTPUT)
+            self.handle_io(program, False)  # asserts the output for addresses
         print("... Simulator stopped successfully.")
 
     def run_node(self, node: Node) -> Node:
         """interpret node recursively"""
         result: Node = None
         match node.ident:
+            case "file":
+                self.__file(node)
             case "program":
                 self.__program(node)
             case "statements":
                 self.__statements(node)
             case "if":
                 self.__if(node)
-            case "var":
-                result = self.__var(node)
+            case "variable":
+                result = self.__variable(node)
             case "assign":
                 result = self.__assign(node)
             case "or":
@@ -102,6 +105,10 @@ class Interpreter:
                 )
                 result = None
         return result
+
+    def __file(self, node: Node) -> None:
+        """interprets file-node"""
+        self.run_node(node.get_children("program")[0])
 
     def __program(self, node: Node) -> None:
         """interprets program-node"""
@@ -150,8 +157,8 @@ class Interpreter:
         """interprets const-node"""
         return node.clone()
 
-    def __var(self, node: Node) -> Node:
-        """interprets var-node"""
+    def __variable(self, node: Node) -> Node:
+        """interprets variable-node"""
         ident = node.children[0].ident
         sym = node.get_symbol(ident)
         n = sym.value.clone()  # TODO: depends on pointer or not, ...
@@ -160,6 +167,7 @@ class Interpreter:
 
     def handle_io(self, program: Node, set_input: bool) -> None:
         """sets the I/O test values to the currents node symbols, or asserts the output"""
+        assert program.ident == "program"
         for sym in program.symbols.values():
             if sym.address is None:
                 continue
@@ -195,12 +203,11 @@ class Interpreter:
                         print(f"Actual value: {Node.custom_str(actual, False)}")
                         sys.exit(0)
 
-    def show_io(self, direction: AddressDirection) -> None:
+    def show_io(self, program: Node, direction: AddressDirection) -> None:
         """shows i/o address values"""
-        if self.program is None:
-            return
+        assert program.ident == "program"
         print("INPUT:" if direction == AddressDirection.INPUT else "OUTPUT:")
-        for symbol in self.program.symbols.values():
+        for symbol in program.symbols.values():
             if symbol.address is not None and symbol.address.dir == direction:
                 if symbol.value is None:
                     print(f"  {symbol.ident}=NONE")

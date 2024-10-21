@@ -76,32 +76,53 @@ class Parser:
             part = self.__program()
         elif self.lex.peek(TokenType.KEYWORD, "function"):
             part = self.__function()
+        else:
+            self.lex.error("expected 'PROGRAM' or 'FUNCTION'")
         return part
 
     def __program(self) -> Node:
         """
-        program = "program" ID [variables] statements "end_program"
-            -> "program"(ID, [variables], statements);
+        program = "program" ID {variables} statements "end_program"
+            -> "program"(ID, ...variables, statements);
         """
-        node = self.lex.expect(TokenType.KEYWORD, "program")
+        program = self.lex.expect(TokenType.KEYWORD, "program")
         ident = self.lex.expect(TokenType.IDENT)
         variables = None
-        if self.lex.peek(TokenType.KEYWORD, "var"):
+        while self.lex.peek(TokenType.KEYWORD, "var") or self.lex.peek(
+            TokenType.KEYWORD, "var_input"
+        ):
             variables = self.__variables()
         statements = self.__statements(["end_program"])
-        node.children = [
+        self.lex.expect(TokenType.KEYWORD, "end_program")
+        program.children = [
             ident,
             variables,
             statements,
         ]
-        return node
+        return program
 
     def __function(self) -> Node:
         """
-        function = "function" ID [variables] statements "end_function"
-            -> "function"(ID, [variables], statements)
+        function = "function" ID ":" type {variables} statements "end_function"
+            -> "function"(ID, type, ...variables, statements)
         """
-        TODO
+        function = self.lex.expect(TokenType.KEYWORD, "function")
+        ident = self.lex.expect(TokenType.IDENT)
+        self.lex.expect(TokenType.DELIMITER, ":")
+        return_type = self.__type()
+        while self.lex.peek(TokenType.KEYWORD, "var") or self.lex.peek(
+            TokenType.KEYWORD, "var_input"
+        ):
+            variables = self.__variables()
+        statements = self.__statements(["end_function"])
+        self.lex.expect(TokenType.KEYWORD, "end_function")
+        function.children = [
+            ident,
+            return_type,
+            variables,
+            statements,
+        ]
+        return function
 
     def __statements(self, stop_keywords: List[str]) -> Node:
         """
@@ -117,22 +138,29 @@ class Parser:
 
     def __variables(self) -> Node:
         """
-        variables = "VAR" {variable} "END_VAR"
-            -> "variables"(...variable);
+        variables = "VAR" {variable(False)} "END_VAR" -> "variables"(...variable)
+            | "VAR_INPUT" {variable(True)} "END_VAR" -> "variables"(...variable);
         """
-        variables = self.lex.expect(TokenType.KEYWORD, "var")
+        is_input = self.lex.peek(TokenType.KEYWORD, "var_input")
+        variables: Node = None
+        variables = self.lex.expect(
+            TokenType.KEYWORD, "var_input" if is_input else "var"
+        )
         variables.ident = "variables"
         while not self.lex.is_end() and not self.lex.peek(TokenType.KEYWORD, "end_var"):
-            variables.children.append(self.__variable())
+            variables.children.append(self.__variable(is_input))
         self.lex.expect(TokenType.KEYWORD, "end_var")
         return variables
 
-    def __variable(self) -> Node:
+    def __variable(self, is_input: bool) -> Node:
         """
-        variable = ID [ "AT" ADDR ] ":" type ";"
-            -> "variable"(ID, type, ["addr"(ADDR)]);
+        variable(is_input) = ID [ "AT" ADDR ] ":" type ";"
+            -> [is_input==False] "variable"(ID, type, ["addr"(ADDR)]),
+               [is_input==True] "input_variable"(ID, type, ["addr"(ADDR)]);
         """
         node = self.lex.node("variable")
+        if is_input:
+            node.ident = "input_variable"
         ident = self.lex.expect(TokenType.IDENT)
         addr = self.lex.node("addr")
         if self.lex.peek(TokenType.KEYWORD, "at"):
@@ -188,10 +216,10 @@ class Parser:
     def __assignment(self) -> Node:
         """
         assignment = ID ":=" expr ";"
-            -> "assign"("var"(ID), expr);
+            -> "assign"("variable"(ID), expr);
         """
         node = self.lex.node("assign")
-        lhs = self.lex.node("var", [self.lex.expect(TokenType.IDENT)])
+        lhs = self.lex.node("variable", [self.lex.expect(TokenType.IDENT)])
         self.lex.expect(TokenType.DELIMITER, ":=")
         rhs = self.__expression()
         self.lex.expect(TokenType.DELIMITER, ";")
@@ -218,13 +246,49 @@ class Parser:
 
     def __and(self) -> Node:
         """
-        and = mul { "AND" mul }
-            -> mul | "and"(and, mul);
+        and = cmp { "AND" cmp }
+            -> cmp | "and"(and, cmp);
         """
-        node = self.__mul()
+        node = self.__cmp()
         while self.lex.peek(TokenType.KEYWORD, "and"):
             self.lex.next()
-            node = self.lex.node("and", [node, self.__mul()])
+            node = self.lex.node("and", [node, self.__cmp()])
+        return node
+
+    def __cmp(self) -> Node:
+        """
+        cmp = add [ ">" add ] -> add | "gt"(cmp, add)
+            | add [ "<" add ] -> add | "lt"(cmp, add)
+            | add [ ">=" add ] -> add | "geq"(cmp, add)
+            | add [ "<=" add ] -> add | "leq"(cmp, add);
+        """
+        node = self.__add()
+        if self.lex.peek(TokenType.DELIMITER, ">"):
+            self.lex.next()
+            node = self.lex.node("gt", [node, self.__add()])
+        elif self.lex.peek(TokenType.DELIMITER, ">"):
+            self.lex.next()
+            node = self.lex.node("lt", [node, self.__add()])
+        elif self.lex.peek(TokenType.DELIMITER, "<="):
+            self.lex.next()
+            node = self.lex.node("geq", [node, self.__add()])
+        elif self.lex.peek(TokenType.DELIMITER, ">="):
+            self.lex.next()
+            node = self.lex.node("leq", [node, self.__add()])
+        return node
+
+    def __add(self) -> Node:
+        """
+        add = unary { ("+"|"-") unary }
+            -> unary | "add|sub"(mul, unary);
+        """
+        node = self.__mul()
+        while self.lex.peek(TokenType.DELIMITER, "+") or self.lex.peek(
+            TokenType.DELIMITER, "-"
+        ):
+            is_add = self.lex.peek(TokenType.DELIMITER, "+")
+            self.lex.next()
+            node = self.lex.node("add" if is_add else "sub", [node, self.__mul()])
         return node
 
     def __mul(self) -> Node:
@@ -244,7 +308,7 @@ class Parser:
             | "FALSE" -> "bool"("false")
             | REAL -> "real"(real)
             | INT -> "int"(int)
-            | ID -> "var"(ID)
+            | ID -> "variable"(ID)
             | ID "(" expr@args { "," expr@args } ")" -> "call"(...args)
             | "(" expr ")" -> expr;
         """
@@ -276,7 +340,7 @@ class Parser:
                 self.lex.expect(TokenType.DELIMITER, ")")
                 res = self.lex.node("call", args)
             else:
-                res = self.lex.node("var", [self.lex.node(tk)])
+                res = self.lex.node("variable", [self.lex.node(tk)])
         elif self.lex.peek(TokenType.DELIMITER, "("):
             self.lex.next()
             expr = self.__expression()

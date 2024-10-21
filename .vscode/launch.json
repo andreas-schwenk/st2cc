@@ -12,9 +12,9 @@
       "args": [
         "-v",
         "--cfg",
-        "examples/recursion.toml",
+        "examples/example.toml",
         "-i",
-        "examples/recursion.st"
+        "examples/example.st"
       ],
       "console": "integratedTerminal"
     },

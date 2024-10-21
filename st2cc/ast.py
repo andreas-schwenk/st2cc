@@ -85,6 +85,14 @@ class Node:
             n = n.parent
         return None
 
+    def get_children(self, ident: str) -> List[Node]:
+        """gets a child node"""
+        res: List[Node] = []
+        for child in self.children:
+            if child.ident == ident:
+                res.append(child)
+        return res
+
     def __str__(self) -> str:
         return self.custom_str()
 
