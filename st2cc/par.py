@@ -51,9 +51,32 @@ class Parser:
 
     def parse(self) -> Node:
         """parses the ST file"""
-        root = self.__program()
+        root = self.__file()
         root.set_parent()
         return root
+
+    def __file(self) -> Node:
+        """
+        file = {part}
+            -> "file"(...part);
+        """
+        node = self.lex.node("file")
+        while not self.lex.is_end():
+            part = self.__part()
+            node.children.append(part)
+        return node
+
+    def __part(self) -> Node:
+        """
+        part = program -> program
+            | function -> function;
+        """
+        part: Node = None
+        if self.lex.peek(TokenType.KEYWORD, "program"):
+            part = self.__program()
+        elif self.lex.peek(TokenType.KEYWORD, "function"):
+            part = self.__function()
+        return part
 
     def __program(self) -> Node:
         """
@@ -72,6 +95,13 @@ class Parser:
             statements,
         ]
         return node
+
+    def __function(self) -> Node:
+        """
+        function = "function" ID [variables] statements "end_function"
+            -> "function"(ID, [variables], statements)
+        """
+        TODO
 
     def __statements(self, stop_keywords: List[str]) -> Node:
         """

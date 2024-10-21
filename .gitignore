@@ -1,6 +1,11 @@
 .DS_Store
 Thumbs.db
 
+
+cython/st2cc
+cython/st2cc.c
+cython/st2cc.dSYM
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
