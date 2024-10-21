@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "mechatroner.rainbow-csv",
+    "ms-python.python",
+    "ms-python.debugpy",
+    "tamasfe.even-better-toml"
+  ]
+}

@@ -92,9 +92,6 @@ docs/_build/
 .dmypy.json
 dmypy.json
 
-# vscode settings and workspace
-.vscode/
-
 # Backup files
 *.bak
 *.swp
@@ -105,7 +102,6 @@ dmypy.json
 
 # IDEs and editors
 .idea/
-.vscode/
 *.sublime-workspace
 *.sublime-project
 *.code-workspace
