@@ -17,17 +17,61 @@ FUNCTION Factorial: INT
     END_IF
 END_FUNCTION
 
-
 (* SYMBOL TABLE
 
 @program
-    # IDENTIFIER SCOPE BASE DIM ADDRESS
-    n local int None IW0
-    result local int None QW0
-    Factorial function int None None
-
+    # IDENTIFIER SCOPE (BASE DIM)=dtype ADDRESS
+    n local (int None) IW0
+    result local (int None) QW0
+    Factorial function (int None) None
 @Factorial:
-    num param int None None
+    num param (int None) None
+
+IDEA: use Node instead of DataType
+
+examples:
+
+    n: INT;
+    ->
+    int
+
+    myPointer: POINTER TO INT;
+    ->
+    pointer
+        int
+
+    temperatures: ARRAY[0..4] OF REAL;
+    ->
+    array
+        real
+        0
+        4
+
+    TYPE TrafficLightState: (Red, Yellow, Green); END_TYPE
+    VAR lightState: TrafficLightState := Red; END_VAR
+    ->
+    enum
+        TrafficLightState
+        enumerators
+            Red
+            Yellow
+            Green
+
+    TYPE
+        Point: STRUCT
+            x: REAL;
+            y: REAL;
+        END_STRUCT;
+    END_TYPE
+    ->
+    struct
+        item
+            x
+            real
+        item
+            y
+            real
+
 
  *)
 

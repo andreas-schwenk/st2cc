@@ -16,7 +16,7 @@ License:
 import sys
 
 from st2cc.ast import Node
-from st2cc.sym import BaseType, DataType, Sym
+from st2cc.sym import Sym
 from st2cc.pah import parse_address
 
 
@@ -40,11 +40,11 @@ class SemanticAnalysis:
         """run semantic analysis"""
         self.__run_recursively(self.ast)
 
-    def __run_recursively(self, node: Node) -> DataType:
+    def __run_recursively(self, node: Node) -> Node:
         """
         Runs the analysis for given node.
         """
-        res: DataType = None
+        data_type: Node = None
         match node.ident:
             case "file":
                 self.__file(node)
@@ -55,17 +55,19 @@ class SemanticAnalysis:
             case "if":
                 self.__if(node)
             case "variable":
-                res = self.__variable(node)
+                data_type = self.__variable(node)
             case "assign" | "mul" | "or" | "and" | "add" | "sub":
-                res = self.__bin_op(node)
+                data_type = self.__bin_op(node)
+            case "call":
+                data_type = self.__call(node)
             case "bool" | "int":
-                res = self.__const(node)
+                data_type = self.__const(node)
             case _:
                 self.__error(
                     node, f"SemanticAnalysis: UNIMPLEMENTED NODE TYPE '{node.ident}'"
                 )
                 return None
-        return res
+        return data_type
 
     def __file(self, node: Node) -> None:
         """semantical analysis for file-node"""
@@ -83,7 +85,7 @@ class SemanticAnalysis:
         if node.children[1] is not None:
             for v in node.children[1].children:
                 ident = v.children[0].ident
-                data_type = DataType(BaseType[v.children[1].children[0].ident.upper()])
+                data_type = v.children[1].clone()
                 sym = Sym(ident, data_type)
                 addr = v.children[2]
                 if addr is not None:
@@ -105,7 +107,7 @@ class SemanticAnalysis:
         """
         cond = node.children[0]
         cond_data_type = self.__run_recursively(cond)
-        if cond_data_type.base != BaseType.BOOL:
+        if not Node.compare(cond_data_type, Node("bool")):
             self.__error(cond, "if statement condition must be boolean")
         cond.data_type = cond_data_type
         statements_if = node.children[1]
@@ -115,7 +117,7 @@ class SemanticAnalysis:
         for s in statements_else.children:
             self.__run_recursively(s)
 
-    def __variable(self, node: Node) -> DataType:
+    def __variable(self, node: Node) -> Node:
         """semantical analysis for var-node"""
         ident = node.children[0].ident
         sym = node.get_symbol(ident)
@@ -124,13 +126,15 @@ class SemanticAnalysis:
         node.data_type = sym.data_type
         return sym.data_type
 
-    def __bin_op(self, node: Node) -> DataType:
-        """op(u,v) -> op(u,v):type(u), with type(u)==type(v)"""
+    def __bin_op(self, node: Node) -> Node:
+        """
+        op(u,v) -> op(u,v):type(u), with type(u)==type(v)
+        """
         lhs = node.children[0]
         lhs_data_type = self.__run_recursively(lhs)
         rhs = node.children[1]
         rhs_data_type = self.__run_recursively(rhs)
-        if DataType.compare(lhs.data_type, rhs.data_type) is False:
+        if Node.compare(lhs.data_type, rhs.data_type) is False:
             self.__error(
                 node,
                 f"incompatible types for '{node.ident}':"
@@ -140,16 +144,22 @@ class SemanticAnalysis:
         node.data_type = lhs_data_type
         return lhs_data_type
 
-    def __const(self, node: Node) -> DataType:
+    def __call(self, node: Node) -> Node:
+        """
+        ID(...params) -> ID(...params):type(<function(ID)>);
+        """
+
+        # get function
+
+        return TODO
+
+    def __const(self, node: Node) -> Node:
         """
         "bool"(value) -> "const"(value):bool;
         "int"(value) -> "const"(value):int;
+        ...
         """
-        match node.ident:
-            case "bool":
-                node.data_type = DataType(BaseType.BOOL)
-            case "int":
-                node.data_type = DataType(BaseType.INT)
+        node.data_type = Node(node.ident)
         node.ident = "const"
         return node.data_type
 

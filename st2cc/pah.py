@@ -13,7 +13,7 @@ License:
 
 import sys
 
-from st2cc.sym import Address, AddressDirection
+from st2cc.adr import Address
 
 
 def parse_address(data: str) -> Address:
@@ -21,10 +21,10 @@ def parse_address(data: str) -> Address:
     addr = Address()
     # direction
     if data.startswith("I"):
-        addr.dir = AddressDirection.INPUT
+        addr.dir = "i"
         data = data[1:]
     elif data.startswith("Q"):
-        addr.dir = AddressDirection.OUTPUT
+        addr.dir = "q"
         data = data[1:]
     else:
         print("unexpected error while parsing the address")  # TODO

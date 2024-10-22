@@ -14,10 +14,10 @@ License:
 from typing import List, Set
 
 from st2cc.ast import Node
-from st2cc.sym import AddressDirection, Address
+from st2cc.adr import Address
 
 
-def filter_addr(node: Node, addr_dir: AddressDirection) -> List[Address]:
+def filter_addr(node: Node, addr_dir: str) -> List[Address]:
     """
     Filters a list of node symbol addresses based on direction and returns a
     modified list that meets the specified direction criteria.

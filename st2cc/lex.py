@@ -63,7 +63,7 @@ class Lexer:
             if len(ident) > 0:
                 e += f":'{ident}'"
             self.error(f"Expected {e}")
-        n = Node(self.token.ident, self.token.row, self.token.col)
+        n = Node(self.token.ident, [], self.token.row, self.token.col)
         self.next()
         return n
 
@@ -79,7 +79,7 @@ class Lexer:
         """Creates an AST node at the current position"""
         if children is None:
             children = []
-        return Node(ident, self.token.row, self.token.col, children)
+        return Node(ident, children, self.token.row, self.token.col)
 
     def is_end(self):
         """is end?"""
@@ -119,10 +119,8 @@ class Lexer:
                 # multi line comment
                 self.pos += 2
                 self.col += 2
-                while (
-                    self.pos < len(self.src) + 1
-                    and self.src[self.pos] != "*"
-                    and self.src[self.pos + 1] != ")"
+                while self.pos < len(self.src) + 1 and not (
+                    self.src[self.pos] == "*" and self.src[self.pos + 1] == ")"
                 ):
                     self.pos += 1
                     match self.src[self.pos]:

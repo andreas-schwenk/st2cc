@@ -14,7 +14,7 @@ License:
 import sys
 
 from st2cc.ast import Node
-from st2cc.sym import Address, AddressDirection, DataType, BaseType
+from st2cc.adr import Address
 from st2cc.asf import filter_addr, filter_distinct_addr_bytes
 
 
@@ -138,37 +138,33 @@ class CodeGenerator:
 
     def __const(self, node: Node) -> str:
         """generates const-node"""
-        code = node.const_str()
+        code = node.children[0].brackets_str()
         return code
 
     def generate_addr_defines(self, node: Node) -> str:
         """generate defines for addresses"""
         code = ""
-        for direction in [AddressDirection.INPUT, AddressDirection.OUTPUT]:
-            prefix = "I" if direction == AddressDirection.INPUT else "Q"
-            addr_list = filter_distinct_addr_bytes(
-                filter_addr(node, AddressDirection.INPUT)
-            )
-            physical_addr = 1000 if direction == AddressDirection.INPUT else 2000
+        for direction in ["i", "q"]:
+            addr_list = filter_distinct_addr_bytes(filter_addr(node, direction))
+            physical_addr = 1000 if direction == "i" else 2000
             if "addr" in self.config:
-                if prefix == "I" and "input" in self.config["addr"]:
+                if direction == "i" and "input" in self.config["addr"]:
                     physical_addr = self.config["addr"]["input"]
-                if prefix == "Q" and "output" in self.config["addr"]:
+                if direction == "q" and "output" in self.config["addr"]:
                     physical_addr = self.config["addr"]["output"]
             for addr in addr_list:
-                code += f"#define ADDR_{prefix}{addr.pos[0]} {hex(physical_addr)}\n"
+                code += f"#define ADDR_{direction.upper()}{addr.pos[0]} {hex(physical_addr)}\n"
                 physical_addr += addr.get_num_bytes()
         return code
 
     def generate_variables(self, node: Node) -> str:
         """generates IO variables and local variables"""
         code = ""
-        for direction in [AddressDirection.INPUT, AddressDirection.OUTPUT]:
+        for direction in ["i", "q"]:
             addr_list = filter_distinct_addr_bytes(filter_addr(node, direction))
-            prefix = "i" if direction == AddressDirection.INPUT else "q"
             for addr in addr_list:
                 bits = 8 if addr.bits == 1 else addr.bits
-                code += f"uint{bits}_t {prefix}{addr.pos[0]};\n"
+                code += f"uint{bits}_t {direction.upper()}{addr.pos[0]};\n"
         for sym in node.symbols.values():
             t = self.generate_type(sym.data_type)
             code += f"{t} {sym.ident};\n"
@@ -178,9 +174,7 @@ class CodeGenerator:
         """generates code to read IO variables"""
         code = ""
         # read sensor data from address
-        addr_list = filter_distinct_addr_bytes(
-            filter_addr(node, AddressDirection.INPUT)
-        )
+        addr_list = filter_distinct_addr_bytes(filter_addr(node, "i"))
         for addr in addr_list:
             p = addr.pos[0]
             bits = 8 if addr.bits == 1 else addr.bits
@@ -189,7 +183,7 @@ class CodeGenerator:
         # read to variables
         for sym in node.symbols.values():
             addr = sym.address
-            if addr is None or addr.dir != AddressDirection.INPUT:
+            if addr is None or addr.dir != "i":
                 continue
             p = addr.pos[0]
             shift = ""
@@ -201,9 +195,7 @@ class CodeGenerator:
     def generate_write_io(self, node: Node) -> str:
         """generates code to write IO variables"""
         code = ""
-        addr_list = filter_distinct_addr_bytes(
-            filter_addr(node, AddressDirection.OUTPUT)
-        )
+        addr_list = filter_distinct_addr_bytes(filter_addr(node, "q"))
         # write actor data to variables
         for addr in addr_list:
             p = addr.pos[0]
@@ -231,18 +223,20 @@ class CodeGenerator:
             code += f"*(volatile {t} *)ADDR_Q{p} = q{p};\n"
         return code
 
-    def generate_type(self, dtype: DataType) -> str:
+    def generate_type(self, data_type: Node) -> str:
         """generates data type"""
         code = ""
         # TODO: handle pointers, arrays, ...
-        match dtype.base:
-            case BaseType.BOOL:
+        match data_type.ident:
+            case "bool":
                 code = "bool"
                 self.standard_includes.add("stdbool.h")
-            case BaseType.INT:
+            case "int":
                 code = "int"
             case _:
-                print(f"ERROR: generate_type(..): UNIMPLEMENTED type '{dtype.base}'")
+                print(
+                    f"ERROR: generate_type(..): UNIMPLEMENTED type '{data_type.base}'"
+                )
                 sys.exit(-1)
         return code
 

@@ -8,8 +8,8 @@
 #define ADDR_Q0 0x2000
 
 int main(int argc, char *argv[]) {
-    uint8_t i0;
-    uint8_t q0;
+    uint8_t I0;
+    uint8_t Q0;
     bool sensor0;
     bool sensor1;
     bool sensor2;

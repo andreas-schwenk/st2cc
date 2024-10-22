@@ -15,7 +15,6 @@ import sys
 from typing import Dict, List
 
 from st2cc.ast import Node
-from st2cc.sym import AddressDirection, BaseType
 
 
 class Sample:
@@ -71,9 +70,9 @@ class Interpreter:
             self.cycle = i
             program = self.root.get_children("program")[0]
             self.handle_io(program, True)  # sets the input for addresses
-            self.show_io(program, AddressDirection.INPUT)
+            self.show_io(program, "i")
             self.run_node(self.root)
-            self.show_io(program, AddressDirection.OUTPUT)
+            self.show_io(program, "q")
             self.handle_io(program, False)  # asserts the output for addresses
         print("... Simulator stopped successfully.")
 
@@ -182,17 +181,17 @@ class Interpreter:
                 if addr_bit >= 0:
                     value = (value >> addr_bit) & 1
                 value_node = None
-                match sym.data_type.base:
-                    case BaseType.BOOL:
+                match sym.data_type.ident:
+                    case "bool":
                         value_node = Node.create_const_bool(value != 0)
-                    case BaseType.INT:
+                    case "int":
                         value_node = Node.create_const_int(value)
                     case _:
                         print("ERROR: unimplemented set_input_address_values(..)")
                         sys.exit(-1)
-                if set_input and sym.address.dir == AddressDirection.INPUT:
+                if set_input and sym.address.dir == "i":
                     sym.value = value_node
-                elif not set_input and sym.address.dir == AddressDirection.OUTPUT:
+                elif not set_input and sym.address.dir == "q":
                     actual = sym.value
                     expected = value_node
                     if sym.value is None or not Node.compare(actual, expected):
@@ -203,16 +202,16 @@ class Interpreter:
                         print(f"Actual value: {Node.custom_str(actual, False)}")
                         sys.exit(0)
 
-    def show_io(self, program: Node, direction: AddressDirection) -> None:
+    def show_io(self, program: Node, direction: str) -> None:
         """shows i/o address values"""
         assert program.ident == "program"
-        print("INPUT:" if direction == AddressDirection.INPUT else "OUTPUT:")
+        print("INPUT:" if direction == "i" else "OUTPUT:")
         for symbol in program.symbols.values():
             if symbol.address is not None and symbol.address.dir == direction:
                 if symbol.value is None:
                     print(f"  {symbol.ident}=NONE")
                 else:
-                    print(f"  {symbol.ident}={symbol.value.const_str()}")
+                    print(f"  {symbol.ident}={symbol.value.brackets_str()}")
 
     def __error(self, node: Node, msg: str) -> None:
         """error handling"""

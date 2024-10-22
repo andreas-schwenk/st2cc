@@ -174,16 +174,14 @@ class Parser:
 
     def __type(self) -> Node:
         """
-        type = "BOOL" -> "base"("bool")
-            | "INT" -> "base"("int")
-            | "REAL" -> "base"("real");
+        type = "BOOL" -> "bool"
+            | "INT" -> "int"
+            | "REAL" -> "real";
         """
-        node = self.lex.node("base")
-        b = self.lex.expect(TokenType.KEYWORD)
-        node.children = [b]
-        if b.ident not in ["bool", "int", "real"]:
+        base = self.lex.expect(TokenType.KEYWORD)
+        if base.ident not in ["bool", "int", "real"]:
             self.lex.error("unknown type 't'")
-        return node
+        return base
 
     def __statement(self) -> Node:
         """

@@ -15,36 +15,50 @@ from __future__ import annotations
 from typing import Dict, List
 
 
-from st2cc.sym import DataType, Sym, BaseType
+from st2cc.sym import Sym
 
 
 class Node:
     """abstract syntax tree node"""
 
     def __init__(
-        self, ident: str, row: int, col: int, children: List[Node] = None
+        self, ident: str, children: List[Node] = None, row: int = -1, col: int = -1
     ) -> None:
         self.ident: str = ident
         self.row: int = row
         self.col: int = col
-        self.data_type: DataType = None
+        self.data_type: Node = None
         self.symbols: Dict[str, Sym] = {}
         self.parent: Node = None
         self.children: List[Node] = children if children is not None else []
+
+    def clone(self) -> Node:
+        """clones a node"""
+        c = Node(self.ident)
+        c.row = self.row
+        c.col = self.col
+        c.data_type = (
+            None if self.data_type is None else self.data_type.clone()
+        )  # TODO: OK for complex types??
+        c.symbols = self.symbols
+        c.parent = self.parent
+        for child in self.children:
+            c.children.append(child.clone())
+        return c
 
     @staticmethod
     def create_const_bool(value: bool) -> Node:
         """creates a node for a boolean constant"""
         v = "true" if value else "false"
-        n = Node("const", -1, -1, [Node(f"{v}", -1, -1, [])])
-        n.data_type = DataType(BaseType.BOOL)
+        n = Node("const", [Node(v)])
+        n.data_type = Node("bool")
         return n
 
     @staticmethod
     def create_const_int(value: int) -> Node:
         """creates a node for an integral constant"""
-        n = Node("const", -1, -1, [Node(f"{value}", -1, -1, [])])
-        n.data_type = DataType(BaseType.INT)
+        n = Node("const", [Node(f"{value}")])
+        n.data_type = Node("int")
         return n
 
     @staticmethod
@@ -59,16 +73,6 @@ class Node:
             if Node.compare(u.children[i], v.children[i]) is False:
                 return False
         return True
-
-    def clone(self) -> Node:
-        """clones a node"""
-        c = Node(self.ident, self.row, self.col, [])
-        c.data_type = self.data_type
-        c.symbols = self.symbols
-        c.parent = self.parent
-        for child in self.children:
-            c.children.append(child.clone())
-        return c
 
     def set_parent(self) -> None:
         """sets parent recursively"""
@@ -98,25 +102,28 @@ class Node:
 
     def custom_str(self, show_position: bool = True, indentation: int = 0) -> str:
         """custom stringify"""
-        t = str(self.data_type) if self.data_type is not None else ""
+        t = self.data_type.brackets_str() if self.data_type is not None else ""
         s = ""
         if show_position:
             s += f"{self.row}:{self.col}:"
         s += f"{self.ident}:<{t}>\n"
         for sym in self.symbols.values():
-            s += ("  " * (indentation + 1)) + f"SYMBOL:{sym}\n"
+            s += ("  " * (indentation + 1)) + f"SYMBOL: {sym}\n"
         for ci in self.children:
             s += ("  " * (indentation + 1)) + ci.custom_str(
                 show_position, indentation + 1
             )
         return s
 
-    def const_str(self) -> str:
-        """formats nodes of type 'const'"""
-        # TODO: missing pointers, ...
-        if self.ident != "const":
-            return str(self)
-        match self.data_type.base:
-            case BaseType.BOOL | BaseType.INT:
-                return self.children[0].ident
-        print(f"Node.const_str(..) is unimplemented for type'{self.data_type.base}'")
+    def brackets_str(self) -> str:
+        """stringify to brackets"""
+        s = self.ident
+        n = len(self.children)
+        if n > 0:
+            s += "("
+            for i in range(0, n):
+                if i > 0:
+                    s += ","
+                s += self.children[i].brackets_str()
+            s += ")"
+        return s
