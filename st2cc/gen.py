@@ -71,7 +71,7 @@ class CodeGenerator:
         return code
 
     def __file(self, node: Node) -> str:
-        program = node.get_children("program")[0]
+        program = node.get_symbols("program")[0].code
         return self.run_node(program)
 
     def __program(self, node: Node) -> str:
@@ -79,11 +79,11 @@ class CodeGenerator:
         code = ""
         code += self.generate_addr_defines(node) + "\n"
         code += "int main(int argc, char *argv[]) {\n"
-        code += self.indent(self.generate_variables(node))
+        code += self.indentation(self.generate_variables(node))
         code += "    while (1) {\n"
-        code += self.indent(self.generate_read_io(node), 2)
-        code += self.indent(self.run_node(node.children[1]), 2)
-        code += self.indent(self.generate_write_io(node), 2)
+        code += self.indentation(self.generate_read_io(node), 2)
+        code += self.indentation(self.run_node(node.children[1]), 2)
+        code += self.indentation(self.generate_write_io(node), 2)
         code += "    }\n"  # end of while(1)
         code += "    return 0;\n"  # end of main(..)
         code += "}\n"
@@ -101,10 +101,10 @@ class CodeGenerator:
         condition = self.run_node(node.children[0])
         code = f"if ({condition}) {{\n"
         if_true = self.run_node(node.children[1])
-        code += self.indent(if_true)
+        code += self.indentation(if_true)
         code += "} else {\n"
         if_false = self.run_node(node.children[2])
-        code += self.indent(if_false)
+        code += self.indentation(if_false)
         code += "}\n"
         return code
 
@@ -240,7 +240,7 @@ class CodeGenerator:
                 sys.exit(-1)
         return code
 
-    def indent(self, code: str, cnt: int = 1) -> str:
+    def indentation(self, code: str, cnt: int = 1) -> str:
         """indents code by 4 spaces"""
         ws = "    " * cnt
         return "\n".join(map(lambda line: ws + line, code.splitlines())) + "\n"

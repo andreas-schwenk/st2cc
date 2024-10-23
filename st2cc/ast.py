@@ -77,17 +77,32 @@ class Node:
     def set_parent(self) -> None:
         """sets parent recursively"""
         for c in self.children:
+            if c is None:
+                continue
             c.parent = self
             c.set_parent()
 
-    def get_symbol(self, ident: str) -> Sym:
+    def get_symbol(self, ident: str, scopes: List[str] = None) -> Sym:
         """get symbol from most inner matching scope"""
         n = self
         while n is not None:
             if ident in n.symbols:
-                return n.symbols[ident]
+                sym = n.symbols[ident]
+                if scopes is None or sym.scope in scopes:
+                    return sym
             n = n.parent
         return None
+
+    def get_symbols(self, scope="") -> List[Sym]:
+        """counts the number of symbols by scope"""
+        res: List[Sym] = []
+        n = self
+        while n is not None:
+            for sym in n.symbols.values():
+                if sym.scope == scope:
+                    res.append(sym)
+            n = n.parent
+        return res
 
     def get_children(self, ident: str) -> List[Node]:
         """gets a child node"""
@@ -108,11 +123,14 @@ class Node:
             s += f"{self.row}:{self.col}:"
         s += f"{self.ident}:<{t}>\n"
         for sym in self.symbols.values():
-            s += ("  " * (indentation + 1)) + f"SYMBOL: {sym}\n"
+            # s += ("  " * (indentation + 1)) + f"SYMBOL: {sym}\n"
+            s += self.indentation(f"SYMBOL: {sym}\n", indentation + 1)
         for ci in self.children:
-            s += ("  " * (indentation + 1)) + ci.custom_str(
-                show_position, indentation + 1
-            )
+            s += "  " * (indentation + 1)
+            if ci is None:
+                s += "None\n"
+            else:
+                s += ci.custom_str(show_position, indentation + 1)
         return s
 
     def brackets_str(self) -> str:
@@ -127,3 +145,8 @@ class Node:
                 s += self.children[i].brackets_str()
             s += ")"
         return s
+
+    def indentation(self, code: str, cnt: int = 1) -> str:
+        """indents code by 4 spaces"""
+        ws = "  " * cnt
+        return "\n".join(map(lambda line: ws + line, code.splitlines())) + "\n"

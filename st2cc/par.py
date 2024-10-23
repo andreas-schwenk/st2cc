@@ -82,47 +82,89 @@ class Parser:
 
     def __program(self) -> Node:
         """
-        program = "program" ID {variables} statements "end_program"
-            -> "program"(ID, ...variables, statements);
+        program = "program" ID variables_blocks statements "end_program"
+            -> "program"(ID, variables_blocks, statements);
         """
         program = self.lex.expect(TokenType.KEYWORD, "program")
         ident = self.lex.expect(TokenType.IDENT)
-        variables = None
-        while self.lex.peek(TokenType.KEYWORD, "var") or self.lex.peek(
-            TokenType.KEYWORD, "var_input"
-        ):
-            variables = self.__variables()
+        variable_blocks = self.__variable_blocks()
         statements = self.__statements(["end_program"])
         self.lex.expect(TokenType.KEYWORD, "end_program")
         program.children = [
             ident,
-            variables,
+            variable_blocks,
             statements,
         ]
         return program
 
     def __function(self) -> Node:
         """
-        function = "function" ID ":" type {variables} statements "end_function"
-            -> "function"(ID, type, ...variables, statements)
+        function = "function" ID ":" type variables_blocks statements "end_function"
+            -> "function"(ID, type, variables_blocks, statements)
         """
         function = self.lex.expect(TokenType.KEYWORD, "function")
         ident = self.lex.expect(TokenType.IDENT)
         self.lex.expect(TokenType.DELIMITER, ":")
         return_type = self.__type()
-        while self.lex.peek(TokenType.KEYWORD, "var") or self.lex.peek(
-            TokenType.KEYWORD, "var_input"
-        ):
-            variables = self.__variables()
+        variables_blocks = self.__variable_blocks()
         statements = self.__statements(["end_function"])
         self.lex.expect(TokenType.KEYWORD, "end_function")
         function.children = [
             ident,
             return_type,
-            variables,
+            variables_blocks,
             statements,
         ]
         return function
+
+    def __variable_blocks(self) -> Node:
+        """
+        variable_blocks = {variable_block}
+            -> "variable_blocks"(...variable_block);
+        """
+        blocks = self.lex.node("variable_blocks")
+        while self.lex.peek(TokenType.KEYWORD, "var") or self.lex.peek(
+            TokenType.KEYWORD, "var_input"
+        ):
+            blocks.children.append(self.__variable_block())
+        return blocks
+
+    def __variable_block(self) -> Node:
+        """
+        variable_block = "VAR" {variable(False)} "END_VAR" -> "variables"(...variable)
+            | "VAR_INPUT" {variable(True)} "END_VAR" -> "input_variables"(...variable);
+        """
+        block: Node = None
+        if self.lex.peek(TokenType.KEYWORD, "var"):
+            block = self.lex.expect(TokenType.KEYWORD, "var")
+            block.ident = "variables"
+        elif self.lex.peek(TokenType.KEYWORD, "var_input"):
+            block = self.lex.expect(TokenType.KEYWORD, "var_input")
+            block.ident = "input_variables"
+        else:
+            self.lex.error("expected 'var' or 'var_input'")
+        while not self.lex.is_end() and not self.lex.peek(TokenType.KEYWORD, "end_var"):
+            block.children.append(self.__variable())
+        self.lex.expect(TokenType.KEYWORD, "end_var")
+        return block
+
+    def __variable(self) -> Node:
+        """
+        variable = ID [ "AT" ADDR ] ":" type ";"
+            ->  "variable"(ID, type, ["addr"(ADDR)]);
+        """
+        node = self.lex.node("variable")
+        ident = self.lex.expect(TokenType.IDENT)
+        addr = None
+        if self.lex.peek(TokenType.KEYWORD, "at"):
+            addr = self.lex.node("addr")
+            self.lex.next()
+            addr.children.append(self.lex.expect(TokenType.ADDR))
+        self.lex.expect(TokenType.DELIMITER, ":")
+        t = self.__type()
+        self.lex.expect(TokenType.DELIMITER, ";")
+        node.children = [ident, t, addr]
+        return node
 
     def __statements(self, stop_keywords: List[str]) -> Node:
         """
@@ -135,42 +177,6 @@ class Parser:
                 break
             statements.children.append(self.__statement())
         return statements
-
-    def __variables(self) -> Node:
-        """
-        variables = "VAR" {variable(False)} "END_VAR" -> "variables"(...variable)
-            | "VAR_INPUT" {variable(True)} "END_VAR" -> "variables"(...variable);
-        """
-        is_input = self.lex.peek(TokenType.KEYWORD, "var_input")
-        variables: Node = None
-        variables = self.lex.expect(
-            TokenType.KEYWORD, "var_input" if is_input else "var"
-        )
-        variables.ident = "variables"
-        while not self.lex.is_end() and not self.lex.peek(TokenType.KEYWORD, "end_var"):
-            variables.children.append(self.__variable(is_input))
-        self.lex.expect(TokenType.KEYWORD, "end_var")
-        return variables
-
-    def __variable(self, is_input: bool) -> Node:
-        """
-        variable(is_input) = ID [ "AT" ADDR ] ":" type ";"
-            -> [is_input==False] "variable"(ID, type, ["addr"(ADDR)]),
-               [is_input==True] "input_variable"(ID, type, ["addr"(ADDR)]);
-        """
-        node = self.lex.node("variable")
-        if is_input:
-            node.ident = "input_variable"
-        ident = self.lex.expect(TokenType.IDENT)
-        addr = self.lex.node("addr")
-        if self.lex.peek(TokenType.KEYWORD, "at"):
-            self.lex.next()
-            addr.children.append(self.lex.expect(TokenType.ADDR))
-        self.lex.expect(TokenType.DELIMITER, ":")
-        t = self.__type()
-        self.lex.expect(TokenType.DELIMITER, ";")
-        node.children = [ident, t, addr]
-        return node
 
     def __type(self) -> Node:
         """
@@ -330,13 +336,16 @@ class Parser:
             self.lex.next()
             if self.lex.peek(TokenType.DELIMITER, "("):
                 self.lex.next()
+                ident = tk
                 args: List[Node] = []
                 args.append(self.__expression())
                 while self.lex.peek(TokenType.DELIMITER, ","):
                     self.lex.next()
                     args.append(self.__expression())
                 self.lex.expect(TokenType.DELIMITER, ")")
-                res = self.lex.node("call", args)
+                res = self.lex.node(
+                    "call", [self.lex.node(ident), self.lex.node("args", args)]
+                )
             else:
                 res = self.lex.node("variable", [self.lex.node(tk)])
         elif self.lex.peek(TokenType.DELIMITER, "("):

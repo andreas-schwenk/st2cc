@@ -68,7 +68,7 @@ class Interpreter:
         for i in range(0, n):
             print(f"--- Running cycle {i+1} of {n} ---")
             self.cycle = i
-            program = self.root.get_children("program")[0]
+            program = self.root.get_symbols("program")[0].code
             self.handle_io(program, True)  # sets the input for addresses
             self.show_io(program, "i")
             self.run_node(self.root)
@@ -98,6 +98,8 @@ class Interpreter:
                 result = self.__and(node)
             case "const":
                 result = self.__const(node)
+            case "call":
+                result = self.__call(node)
             case _:
                 self.__error(
                     node, f"Interpretation: UNIMPLEMENTED NODE TYPE '{node.ident}'"
@@ -107,7 +109,8 @@ class Interpreter:
 
     def __file(self, node: Node) -> None:
         """interprets file-node"""
-        self.run_node(node.get_children("program")[0])
+        program = node.get_symbols("program")[0].code
+        self.run_node(program)
 
     def __program(self, node: Node) -> None:
         """interprets program-node"""
@@ -133,7 +136,7 @@ class Interpreter:
     def __assign(self, node: Node) -> Node:
         """interprets assign-node"""
         lhs = node.children[0]
-        sym = node.get_symbol(lhs.children[0].ident)
+        sym = node.get_symbol(lhs.children[0].ident)  # TODO: check scope of sym
         rhs = self.run_node(node.children[1])
         sym.value = rhs
         return rhs
@@ -155,6 +158,10 @@ class Interpreter:
     def __const(self, node: Node) -> Node:
         """interprets const-node"""
         return node.clone()
+
+    def __call(self, node: Node) -> Node:
+        """interprets call-node"""
+        bp = 1337
 
     def __variable(self, node: Node) -> Node:
         """interprets variable-node"""

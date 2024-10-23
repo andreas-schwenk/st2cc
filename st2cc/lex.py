@@ -151,15 +151,17 @@ class Lexer:
             return
         # identifier or keyword
         self.token.type = TokenType.IDENT
+        i = 0
         while self.pos < len(self.src):
             a = self.src[self.pos].isalpha()
-            d = self.src[self.pos].isdigit()
+            d = i > 0 and self.src[self.pos].isdigit()
             u = self.src[self.pos] == "_"
             if not (a or d or u):
                 break
             self.token.ident += self.src[self.pos].lower()
             self.pos += 1
             self.col += 1
+            i += 1
         if self.token.ident in KEYWORDS:
             self.token.type = TokenType.KEYWORD
         if len(self.token.ident) > 0:

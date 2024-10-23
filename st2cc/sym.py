@@ -23,17 +23,22 @@ if TYPE_CHECKING:
 class Sym:
     """Symbol"""
 
-    def __init__(self, ident="", data_type: Node = None) -> None:
-        # TODO: scope: param, local, function, ...
-        # TODO: reference to AST (e.g. for a function)
+    def __init__(self, scope: str, ident: str, data_type: Node) -> None:
         self.ident: str = ident
+        self.scope = scope  # local | parameter | function | program
         self.data_type: Node = data_type
-        self.address: Address = None
-        self.value: Node = None
+        self.address: Address = None  # I/O
+        self.code: Node = None  # used if scope is "function"
+        self.value: Node = None  # used for simulation
 
     def __str__(self) -> None:
-        s = f"{self.ident}, {self.data_type.brackets_str()}"
+        # TODO: output code
+        s = f"SCOPE={self.scope}, ID={self.ident}, TYPE={self.data_type.brackets_str()}"
         if self.address is not None:
             s += f", ADDR={self.address}"
         s += f", VALUE={self.value}"
+        if self.code is not None:
+            s += ",CODE={\n"
+            s += self.code.custom_str(True)
+            s += "}"
         return s
