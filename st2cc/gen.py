@@ -50,20 +50,22 @@ class CodeGenerator:
                 code = self.__file(node)
             case "program":
                 code = self.__program(node)
+            case "function":
+                code = self.__function(node)
             case "statements":
                 code = self.__statements(node)
             case "if":
                 code = self.__if(node)
-            case "or":
-                code = self.__or(node)
-            case "and":
-                code = self.__and(node)
+            case "add" | "sub" | "mul" | "or" | "and" | "leq" | "geq" | "lt" | "gt":
+                code = self.__bin_op(node)
             case "variable":
                 code = self.__variable(node)
             case "assign":
                 code = self.__assign(node, is_statement)
             case "const":
                 code = self.__const(node)
+            case "call":
+                code = self.__call(node)
             case _:
                 self.__error(
                     node, f"Generation: UNIMPLEMENTED NODE TYPE '{node.ident}'"
@@ -71,8 +73,13 @@ class CodeGenerator:
         return code
 
     def __file(self, node: Node) -> str:
+        code = ""
+        functions = node.get_symbols("function")
+        for function in functions:
+            code += self.run_node(function.code)
         program = node.get_symbols("program")[0].code
-        return self.run_node(program)
+        code += self.run_node(program)
+        return code
 
     def __program(self, node: Node) -> str:
         """generates program-node"""
@@ -86,6 +93,24 @@ class CodeGenerator:
         code += self.indentation(self.generate_write_io(node), 2)
         code += "    }\n"  # end of while(1)
         code += "    return 0;\n"  # end of main(..)
+        code += "}\n"
+        return code
+
+    def __function(self, node: Node) -> str:
+        ident = node.children[0].ident
+        return_type = self.generate_type(node.data_type)
+        params = node.get_symbols("parameter")
+        code = ""
+        n = len(params)
+        for i in range(0, n):
+            param = params[i]
+            param_type = self.generate_type(param.data_type)
+            if i > 0:
+                code += ", "
+            code += f"{param_type} {param.ident}"
+        code = f"{return_type} {ident}({code})" + " {\n"
+        body = self.run_node(node.children[2])
+        code += self.indentation(body)
         code += "}\n"
         return code
 
@@ -108,17 +133,35 @@ class CodeGenerator:
         code += "}\n"
         return code
 
-    def __or(self, node: Node) -> str:
-        """generates or-node"""
+    def __bin_op(self, node: Node) -> str:
+        """generates an binary operation node"""
+        op = node.ident
         o1 = self.run_node(node.children[0])
         o2 = self.run_node(node.children[1])
-        return f"({o1} || {o2})"  # TODO: parentheses, based on o1, o2!!
-
-    def __and(self, node: Node) -> str:
-        """generates and-node"""
-        o1 = self.run_node(node.children[0])
-        o2 = self.run_node(node.children[1])
-        return f"({o1} && {o2})"  # TODO: parentheses, based on o1, o2!!
+        code = ""
+        # TODO: parentheses, based on o1, o2!!
+        match op:
+            case "add":
+                code = f"({o1} + {o2})"
+            case "sub":
+                code = f"({o1} - {o2})"
+            case "mul":
+                code = f"({o1} * {o2})"
+            case "and":
+                code = f"({o1} && {o2})"
+            case "or":
+                code = f"({o1} || {o2})"
+            case "lt":
+                code = f"({o1} < {o2})"
+            case "gt":
+                code = f"({o1} > {o2})"
+            case "leq":
+                code = f"({o1} <= {o2})"
+            case "geq":
+                code = f"({o1} >= {o2})"
+            case _:
+                self.__error(node, f"unimplemented binary-operation {op}")
+        return code
 
     def __variable(self, node: Node) -> str:
         """generates variable-node"""
@@ -139,6 +182,19 @@ class CodeGenerator:
     def __const(self, node: Node) -> str:
         """generates const-node"""
         code = node.children[0].brackets_str()
+        return code
+
+    def __call(self, node: Node) -> str:
+        args = node.children[1].children
+        code = ""
+        n = len(args)
+        for i in range(0, n):
+            arg = self.run_node(args[i])
+            if i > 0:
+                code += ", "
+            code += arg
+        fun_id = node.children[0].ident
+        code = f"{fun_id}({code})"
         return code
 
     def generate_addr_defines(self, node: Node) -> str:
@@ -234,9 +290,8 @@ class CodeGenerator:
             case "int":
                 code = "int"
             case _:
-                print(
-                    f"ERROR: generate_type(..): UNIMPLEMENTED type '{data_type.base}'"
-                )
+                t = data_type.ident
+                print(f"ERROR: generate_type(..): UNIMPLEMENTED type '{t}'")
                 sys.exit(-1)
         return code
 

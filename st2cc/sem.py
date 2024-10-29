@@ -16,7 +16,7 @@ License:
 import sys
 
 from st2cc.ast import Node
-from st2cc.sym import Sym
+from st2cc.sym import Symbol
 from st2cc.pah import parse_address
 
 
@@ -44,7 +44,7 @@ class SemanticAnalysis:
         """
         Runs the analysis for given node.
         """
-        data_type: Node = None
+        data_type = Node.create_nil()
         match node.ident:
             case "file":
                 self.__file(node)
@@ -68,7 +68,7 @@ class SemanticAnalysis:
                 self.__error(
                     node, f"SemanticAnalysis: UNIMPLEMENTED NODE TYPE '{node.ident}'"
                 )
-                return None
+                return Node.create_nil()
         return data_type
 
     def __file(self, node: Node) -> None:
@@ -79,15 +79,16 @@ class SemanticAnalysis:
         for child in node.children:
             scope = child.ident
             ident = child.children[0].ident
-            data_type = Node("void") if child.ident == "program" else child.children[1]
+            data_type = Node.create_nil()
+            if child.ident == "function":
+                data_type = child.children[1]
             # TODO: method self.add_sym(..) that checks for duplicates
-            sym = Sym(scope, ident, data_type)
+            sym = Symbol(scope, ident, data_type, Node.create_nil(), Node.create_nil())
             sym.code = child
             node.symbols[ident] = sym
         node.children = []
         for sym in node.symbols.values():
-            if sym.code is not None:
-                self.__run(sym.code)
+            self.__run(sym.code)
         # check if there is a program
         if len(node.get_symbols("program")) != 1:
             self.__error(node, "exactly one 'PROGRAM' must be implemented")
@@ -97,18 +98,23 @@ class SemanticAnalysis:
         "program"(ID,variable_blocks,statements)
             -> "program"(ID,statements) # symbols <- variable_blocks;
         "function"(ID,data_type,variable_blocks,statements)
-            -> "function"(ID,data_type,statements) # symbols <- variable_blocks;
+            -> "function"(ID,statements):data_type # symbols <- variable_blocks;
         """
         # TODO: check that ADDR is only at allowed places
         is_program = node.ident == "program"
         ident = node.children[0].ident
-        return_type: Node = None if is_program else node.children[1]
+        return_type = Node.create_nil()
+        if not is_program:
+            return_type = node.children[1]
+        node.data_type = return_type
         variable_blocks: Node = node.children[1 if is_program else 2]
         statements: Node = node.children[2 if is_program else 3]
         # for functions: declare a local variable with the same name as the
         # function, which will store the return value.
         if not is_program:
-            node.symbols[ident] = Sym("local", ident, return_type)
+            node.symbols[ident] = Symbol(
+                "local", ident, return_type, Node.create_nil(), Node.create_nil()
+            )
         # build symbols from variables subtree
         # TODO: check, if symbol already exists in same scope via self.add_symbol(..)
         for block in variable_blocks.children:
@@ -122,9 +128,11 @@ class SemanticAnalysis:
             for variable in block.children:
                 ident = variable.children[0].ident
                 data_type = variable.children[1].clone()
-                sym = Sym(scope, ident, data_type)
+                sym = Symbol(
+                    scope, ident, data_type, Node.create_nil(), Node.create_nil()
+                )
                 addr = variable.children[2]
-                if addr is not None:
+                if not addr.is_nil():
                     sym.address = parse_address(addr.children[0].ident[1:])
                 node.symbols[ident] = sym
         # remove var subtree
@@ -174,8 +182,8 @@ class SemanticAnalysis:
             self.__error(
                 node,
                 f"incompatible types for '{op}':"
-                + f" left-hand side '{lhs_type}',"
-                + f" right-hand side '{rhs_type}'",
+                + f" left-hand side '{lhs_type.brackets_str()}',"
+                + f" right-hand side '{rhs_type.brackets_str()}'",
             )
         res = Node("bool")
         node.data_type = res
@@ -192,20 +200,27 @@ class SemanticAnalysis:
             self.__error(
                 node,
                 f"incompatible types for '{op}':"
-                + f" left-hand side '{lhs_type}',"
-                + f" right-hand side '{rhs_type}'",
+                + f" left-hand side '{lhs_type.brackets_str()}',"
+                + f" right-hand side '{rhs_type.brackets_str()}'",
             )
         node.data_type = lhs_type
         return lhs_type
 
     def __call(self, node: Node) -> Node:
         """
-        ID(...params) -> ID(...params):type(<function(ID)>);
+        OLD:
+            ID(...params) -> ID(...params):type(<function(ID)>);
+
+        NEW:
+            call(ID,args(...arg)) / (ID,"function") -> call(ID,args(...arg)): TODO: type
         """
         ident = node.children[0].ident
         sym = node.get_symbol(ident, "function")
         if sym is None:
             self.__error(node, f"unknown function '{ident}'")
+        args = node.children[1].children
+        for arg in args:
+            self.__run(arg)
         # TODO: must check, if params and args match
         return sym.data_type
 
@@ -215,6 +230,7 @@ class SemanticAnalysis:
         "int"(value) -> "const"(value):int;
         ...
         """
+
         node.data_type = Node(node.ident)
         node.ident = "const"
         return node.data_type

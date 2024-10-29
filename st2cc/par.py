@@ -134,7 +134,7 @@ class Parser:
         variable_block = "VAR" {variable(False)} "END_VAR" -> "variables"(...variable)
             | "VAR_INPUT" {variable(True)} "END_VAR" -> "input_variables"(...variable);
         """
-        block: Node = None
+        block = Node.create_nil()
         if self.lex.peek(TokenType.KEYWORD, "var"):
             block = self.lex.expect(TokenType.KEYWORD, "var")
             block.ident = "variables"
@@ -155,7 +155,7 @@ class Parser:
         """
         node = self.lex.node("variable")
         ident = self.lex.expect(TokenType.IDENT)
-        addr = None
+        addr = Node.create_nil()
         if self.lex.peek(TokenType.KEYWORD, "at"):
             addr = self.lex.node("addr")
             self.lex.next()
@@ -209,7 +209,7 @@ class Parser:
         condition = self.__expression()
         self.lex.expect(TokenType.KEYWORD, "then")
         statements_if = self.__statements(["elseif", "else", "end_if"])
-        statements_else: Node = None
+        statements_else: Node = Node.create_nil()
         if self.lex.peek(TokenType.KEYWORD, "else"):
             self.lex.next()
             statements_else = self.__statements(["elseif", "else", "end_if"])
@@ -270,13 +270,13 @@ class Parser:
         if self.lex.peek(TokenType.DELIMITER, ">"):
             self.lex.next()
             node = self.lex.node("gt", [node, self.__add()])
-        elif self.lex.peek(TokenType.DELIMITER, ">"):
+        elif self.lex.peek(TokenType.DELIMITER, "<"):
             self.lex.next()
             node = self.lex.node("lt", [node, self.__add()])
-        elif self.lex.peek(TokenType.DELIMITER, "<="):
+        elif self.lex.peek(TokenType.DELIMITER, ">="):
             self.lex.next()
             node = self.lex.node("geq", [node, self.__add()])
-        elif self.lex.peek(TokenType.DELIMITER, ">="):
+        elif self.lex.peek(TokenType.DELIMITER, "<="):
             self.lex.next()
             node = self.lex.node("leq", [node, self.__add()])
         return node
@@ -313,10 +313,10 @@ class Parser:
             | REAL -> "real"(real)
             | INT -> "int"(int)
             | ID -> "variable"(ID)
-            | ID "(" expr@args { "," expr@args } ")" -> "call"(...args)
+            | ID "(" expr@args { "," expr@arg } ")" -> "call"(ID, args(...arg))
             | "(" expr ")" -> expr;
         """
-        res: Node = None
+        res: Node = Node.create_nil()
         if self.lex.peek(TokenType.KEYWORD, "true"):
             self.lex.next()
             res = self.lex.node("bool", [self.lex.node("true")])

@@ -15,6 +15,7 @@ import sys
 from typing import Dict, List
 
 from st2cc.ast import Node
+from st2cc.sym import Symbol
 
 
 class Sample:
@@ -92,19 +93,21 @@ class Interpreter:
                 result = self.__variable(node)
             case "assign":
                 result = self.__assign(node)
+            case "add" | "sub" | "mul":
+                result = self.__bin_op(node)
             case "or":
                 result = self.__or(node)
             case "and":
                 result = self.__and(node)
+            case "leq" | "geq" | "lt" | "gt":
+                result = self.__cmp(node)
             case "const":
                 result = self.__const(node)
             case "call":
                 result = self.__call(node)
             case _:
-                self.__error(
-                    node, f"Interpretation: UNIMPLEMENTED NODE TYPE '{node.ident}'"
-                )
-                result = None
+                msg = f"Interpretation: UNIMPLEMENTED NODE TYPE '{node.ident}'"
+                self.__error(node, msg)
         return result
 
     def __file(self, node: Node) -> None:
@@ -141,6 +144,31 @@ class Interpreter:
         sym.value = rhs
         return rhs
 
+    def __bin_op(self, node: Node) -> Node:
+        """interprets binary-operation-node"""
+        op = node.ident
+        o1 = self.run_node(node.children[0])
+        o2 = self.run_node(node.children[1])
+        res = Node.create_nil()
+        if o1.data_type.ident == "int" and o2.data_type.ident == "int":
+            v1 = int(o1.children[0].ident)
+            v2 = int(o2.children[0].ident)
+            match op:
+                case "add":
+                    res = Node.create_const_int(v1 + v2)
+                case "sub":
+                    res = Node.create_const_int(v1 - v2)
+                case "mul":
+                    res = Node.create_const_int(v1 * v2)
+                case _:
+                    self.__error(node, f"interpreter: unimplemented operation {op}")
+        else:
+            t1 = o1.data_type.custom_str(False)
+            t2 = o2.data_type.custom_str(False)
+            msg = f"interpreter: unimplemented types {t1} and {t2} for {op}"
+            self.__error(node, msg)
+        return res
+
     def __or(self, node: Node) -> Node:
         """interprets or-node. Implemented as short-circuit evaluation"""
         o1 = self.run_node(node.children[0])
@@ -155,13 +183,65 @@ class Interpreter:
             return Node.create_const_bool(False)
         return self.run_node(node.children[1])
 
+    def __cmp(self, node: Node) -> Node:
+        """interprets compare-node"""
+        op = node.ident
+        o1 = self.run_node(node.children[0])
+        o2 = self.run_node(node.children[1])
+        res: Node = Node.create_nil()
+        if o1.data_type.ident == "int" and o2.data_type.ident == "int":
+            v1 = int(o1.children[0].ident)
+            v2 = int(o2.children[0].ident)
+            match op:
+                case "leq":
+                    res = Node.create_const_bool(v1 <= v2)
+                case "geq":
+                    res = Node.create_const_bool(v1 >= v2)
+                case "lt":
+                    res = Node.create_const_bool(v1 < v2)
+                case "gt":
+                    res = Node.create_const_bool(v1 > v2)
+                case _:
+                    self.__error(node, f"interpreter: unimplemented operation {op}")
+        else:
+            t1 = o1.data_type.custom_str(False)
+            t2 = o2.data_type.custom_str(False)
+            self.__error(
+                node, f"interpreter: unimplemented types {t1} and {t2} for {op}"
+            )
+        return res
+
     def __const(self, node: Node) -> Node:
         """interprets const-node"""
         return node.clone()
 
     def __call(self, node: Node) -> Node:
         """interprets call-node"""
-        bp = 1337
+        ident = node.children[0].ident
+        args = node.children[1].children
+        fun = node.get_symbol(ident, "function")
+        params: List[Symbol] = []
+        for key, value in fun.code.symbols.items():
+            if value.scope == "parameter":
+                params.append(value)
+        # backup symbol values to simulate stack
+        bak = {}
+        for key, value in fun.code.symbols.items():
+            bak[key] = value
+        # set arguments
+        n = len(params)
+        for i in range(0, n):
+            param = params[i]
+            arg = self.run_node(args[i])
+            fun.code.symbols[param.ident].value = arg
+        statements = fun.code.children[2]
+        self.run_node(statements)
+        # restore symbol values to simulate stack
+        for key, value in bak.items():
+            fun.code.symbols[key] = value
+        # get return value and return it
+        res = fun.code.symbols[ident].value
+        return res
 
     def __variable(self, node: Node) -> Node:
         """interprets variable-node"""
@@ -187,7 +267,7 @@ class Interpreter:
                 value = sample.data[addr_str]
                 if addr_bit >= 0:
                     value = (value >> addr_bit) & 1
-                value_node = None
+                value_node = Node.create_nil()
                 match sym.data_type.ident:
                     case "bool":
                         value_node = Node.create_const_bool(value != 0)
@@ -201,7 +281,7 @@ class Interpreter:
                 elif not set_input and sym.address.dir == "q":
                     actual = sym.value
                     expected = value_node
-                    if sym.value is None or not Node.compare(actual, expected):
+                    if not Node.compare(actual, expected):
                         print(
                             f"ERROR: assert failed for output address '{sym.address}'!"
                         )
@@ -215,10 +295,7 @@ class Interpreter:
         print("INPUT:" if direction == "i" else "OUTPUT:")
         for symbol in program.symbols.values():
             if symbol.address is not None and symbol.address.dir == direction:
-                if symbol.value is None:
-                    print(f"  {symbol.ident}=NONE")
-                else:
-                    print(f"  {symbol.ident}={symbol.value.brackets_str()}")
+                print(f"  {symbol.ident}={symbol.value.brackets_str()}")
 
     def __error(self, node: Node, msg: str) -> None:
         """error handling"""

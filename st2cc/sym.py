@@ -20,24 +20,25 @@ if TYPE_CHECKING:
     from st2cc.ast import Node
 
 
-class Sym:
+class Symbol:
     """Symbol"""
 
-    def __init__(self, scope: str, ident: str, data_type: Node) -> None:
+    def __init__(
+        self, scope: str, ident: str, data_type: Node, code: Node, value: Node
+    ) -> None:
         self.ident: str = ident
         self.scope = scope  # local | parameter | function | program
         self.data_type: Node = data_type
         self.address: Address = None  # I/O
-        self.code: Node = None  # used if scope is "function"
-        self.value: Node = None  # used for simulation
+        self.code: Node = code  # used if scope is "function"
+        self.value: Node = value  # used for simulation
 
     def __str__(self) -> None:
-        # TODO: output code
         s = f"SCOPE={self.scope}, ID={self.ident}, TYPE={self.data_type.brackets_str()}"
         if self.address is not None:
             s += f", ADDR={self.address}"
         s += f", VALUE={self.value}"
-        if self.code is not None:
+        if not self.code.is_nil():
             s += ",CODE={\n"
             s += self.code.custom_str(True)
             s += "}"

@@ -14,8 +14,10 @@ License:
 from __future__ import annotations
 from typing import Dict, List
 
+from st2cc.sym import Symbol
 
-from st2cc.sym import Sym
+
+NIL = "nil"
 
 
 class Node:
@@ -27,8 +29,8 @@ class Node:
         self.ident: str = ident
         self.row: int = row
         self.col: int = col
-        self.data_type: Node = None
-        self.symbols: Dict[str, Sym] = {}
+        self.data_type: Node = None if ident == NIL else Node(NIL)
+        self.symbols: Dict[str, Symbol] = {}
         self.parent: Node = None
         self.children: List[Node] = children if children is not None else []
 
@@ -45,6 +47,15 @@ class Node:
         for child in self.children:
             c.children.append(child.clone())
         return c
+
+    def is_nil(self) -> bool:
+        """checks, if the node is NIL"""
+        return self.ident == NIL
+
+    @staticmethod
+    def create_nil() -> Node:
+        """creates a node for nil - not in list"""
+        return Node(NIL)
 
     @staticmethod
     def create_const_bool(value: bool) -> Node:
@@ -66,9 +77,9 @@ class Node:
         """deeply compares two nodes w.r.t identifiers"""
         if u.ident != v.ident:  # TODO: numerical compare for real
             return False
-        if len(u.children) != len(v.children):
-            return False
         n = len(u.children)
+        if n != len(v.children):
+            return False
         for i in range(0, n):
             if Node.compare(u.children[i], v.children[i]) is False:
                 return False
@@ -77,12 +88,10 @@ class Node:
     def set_parent(self) -> None:
         """sets parent recursively"""
         for c in self.children:
-            if c is None:
-                continue
             c.parent = self
             c.set_parent()
 
-    def get_symbol(self, ident: str, scopes: List[str] = None) -> Sym:
+    def get_symbol(self, ident: str, scopes: List[str] = None) -> Symbol:
         """get symbol from most inner matching scope"""
         n = self
         while n is not None:
@@ -93,9 +102,9 @@ class Node:
             n = n.parent
         return None
 
-    def get_symbols(self, scope="") -> List[Sym]:
+    def get_symbols(self, scope="") -> List[Symbol]:
         """counts the number of symbols by scope"""
-        res: List[Sym] = []
+        res: List[Symbol] = []
         n = self
         while n is not None:
             for sym in n.symbols.values():
@@ -117,7 +126,7 @@ class Node:
 
     def custom_str(self, show_position: bool = True, indentation: int = 0) -> str:
         """custom stringify"""
-        t = self.data_type.brackets_str() if self.data_type is not None else ""
+        t = "" if self.data_type is None else self.data_type.brackets_str()
         s = ""
         if show_position:
             s += f"{self.row}:{self.col}:"
@@ -127,10 +136,7 @@ class Node:
             s += self.indentation(f"SYMBOL: {sym}\n", indentation + 1)
         for ci in self.children:
             s += "  " * (indentation + 1)
-            if ci is None:
-                s += "None\n"
-            else:
-                s += ci.custom_str(show_position, indentation + 1)
+            s += ci.custom_str(show_position, indentation + 1)
         return s
 
     def brackets_str(self) -> str:
