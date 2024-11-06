@@ -86,3 +86,18 @@ The core components of the compiler are located in the `st2cc/` directory. Below
 | `tok.py`      | **Lexer Tokens**: Defines the tokens used during lexical analysis.                               |
 
 TODO
+
+# ST References
+
+## general
+
+- https://en.wikipedia.org/wiki/Structured_text
+
+## Addresses
+
+- https://content.helpme-codesys.com/en/CODESYS%20Development%20System/_cds_operands_addresses.html
+
+## Implementations
+
+- https://github.com/PLC-lang/rusty?tab=readme-ov-file
+- https://plc-lang.github.io/rusty/intro_1.html
