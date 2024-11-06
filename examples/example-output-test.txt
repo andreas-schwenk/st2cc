@@ -1,0 +1,121 @@
+-------- parser output: ------
+1:1:file:<nil>
+  1:1:program:<nil>
+    1:9:main:<nil>
+    2:5:variable_blocks:<nil>
+      2:5:variables:<nil>
+        3:9:variable:<nil>
+          3:9:n:<nil>
+          3:20:int:<nil>
+          3:11:addr:<nil>
+            3:14:%IW0:<nil>
+        4:9:variable:<nil>
+          4:9:result:<nil>
+          4:25:int:<nil>
+          4:16:addr:<nil>
+            4:19:%QW0:<nil>
+    6:5:statements:<nil>
+      6:5:assign:<nil>
+        6:12:variable:<nil>
+          6:5:result:<nil>
+        6:27:call:<nil>
+          6:27:factorial:<nil>
+          6:27:args:<nil>
+            6:26:variable:<nil>
+              6:26:n:<nil>
+  9:1:function:<nil>
+    9:10:factorial:<nil>
+    9:21:int:<nil>
+    10:5:variable_blocks:<nil>
+      10:5:input_variables:<nil>
+        11:9:variable:<nil>
+          11:9:num:<nil>
+          11:14:int:<nil>
+          -1:-1:nil:<>
+    13:5:statements:<nil>
+      13:5:if:<nil>
+        13:17:leq:<nil>
+          13:12:variable:<nil>
+            13:12:num:<nil>
+          13:17:int:<nil>
+            13:17:1:<nil>
+        14:9:statements:<nil>
+          14:9:assign:<nil>
+            14:19:variable:<nil>
+              14:9:factorial:<nil>
+            14:23:int:<nil>
+              14:23:1:<nil>
+        16:9:statements:<nil>
+          16:9:assign:<nil>
+            16:19:variable:<nil>
+              16:9:factorial:<nil>
+            16:46:mul:<nil>
+              16:26:variable:<nil>
+                16:26:num:<nil>
+              16:46:call:<nil>
+                16:46:factorial:<nil>
+                16:46:args:<nil>
+                  16:45:sub:<nil>
+                    16:42:variable:<nil>
+                      16:42:num:<nil>
+                    16:45:int:<nil>
+                      16:45:1:<nil>
+
+-------- SEMANTIC ANALYSIS output: -----
+1:1:file:<nil>
+  SYMBOL: SCOPE=program, ID=main, TYPE=nil, VALUE=-1:-1:nil:<>
+  ,CODE={
+  1:1:program:<nil>
+    SYMBOL: SCOPE=local, ID=n, TYPE=int, ADDR=IW0, VALUE=-1:-1:nil:<>
+    
+    SYMBOL: SCOPE=local, ID=result, TYPE=int, ADDR=QW0, VALUE=-1:-1:nil:<>
+    
+    1:9:main:<nil>
+    6:5:statements:<nil>
+      6:5:assign:<int>
+        6:12:variable:<int>
+          6:5:result:<nil>
+        6:27:call:<nil>
+          6:27:factorial:<nil>
+          6:27:args:<nil>
+            6:26:variable:<int>
+              6:26:n:<nil>
+  }
+  SYMBOL: SCOPE=function, ID=factorial, TYPE=int, VALUE=-1:-1:nil:<>
+  ,CODE={
+  9:1:function:<int>
+    SYMBOL: SCOPE=local, ID=factorial, TYPE=int, VALUE=-1:-1:nil:<>
+    
+    SYMBOL: SCOPE=parameter, ID=num, TYPE=int, VALUE=-1:-1:nil:<>
+    
+    9:10:factorial:<nil>
+    9:21:int:<nil>
+    13:5:statements:<nil>
+      13:5:if:<nil>
+        13:17:leq:<bool>
+          13:12:variable:<int>
+            13:12:num:<nil>
+          13:17:const:<int>
+            13:17:1:<nil>
+        14:9:statements:<nil>
+          14:9:assign:<int>
+            14:19:variable:<int>
+              14:9:factorial:<nil>
+            14:23:const:<int>
+              14:23:1:<nil>
+        16:9:statements:<nil>
+          16:9:assign:<int>
+            16:19:variable:<int>
+              16:9:factorial:<nil>
+            16:46:mul:<int>
+              16:26:variable:<int>
+                16:26:num:<nil>
+              16:46:call:<nil>
+                16:46:factorial:<nil>
+                16:46:args:<nil>
+                  16:45:sub:<int>
+                    16:42:variable:<int>
+                      16:42:num:<nil>
+                    16:45:const:<int>
+                      16:45:1:<nil>
+  }
