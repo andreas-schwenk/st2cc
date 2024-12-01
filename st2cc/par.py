@@ -283,8 +283,8 @@ class Parser:
 
     def __add(self) -> Node:
         """
-        add = unary { ("+"|"-") unary }
-            -> unary | "add|sub"(mul, unary);
+        add = mul { ("+"|"-") mul }
+            -> mul | "add|sub"(add, unary);
         """
         node = self.__mul()
         while self.lex.peek(TokenType.DELIMITER, "+") or self.lex.peek(
